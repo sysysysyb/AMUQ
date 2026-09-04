@@ -1,0 +1,48 @@
+name: Feature
+description: Deliver one vertical, user-visible unit from the approved plan.
+title: "[Feature] "
+labels:
+  - "type:feature"
+body:
+  - type: input
+    id: requirement_ids
+    attributes:
+      label: Requirement IDs
+      placeholder: U1, U2
+    validations:
+      required: true
+  - type: textarea
+    id: outcome
+    attributes:
+      label: User-visible outcome
+    validations:
+      required: true
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: Acceptance criteria
+      placeholder: "- [ ] ..."
+    validations:
+      required: true
+  - type: input
+    id: dependencies
+    attributes:
+      label: Dependencies
+      placeholder: None
+  - type: input
+    id: design
+    attributes:
+      label: Design references
+      placeholder: Figma URL or DESIGN.md section
+  - type: textarea
+    id: tests
+    attributes:
+      label: Tests and E2E flows
+    validations:
+      required: true
+  - type: textarea
+    id: exclusions
+    attributes:
+      label: Exclusions
+    validations:
+      required: true

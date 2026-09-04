@@ -1,0 +1,13 @@
+# Secrets
+.env
+.env.*
+!.env.example
+
+# Local tool state
+.compound-engineering/*.local.yaml
+.context/compound-engineering/
+.codex/hooks.json
+.impeccable/*.local.json
+
+# Private project material
+/docs/private/
