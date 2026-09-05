@@ -18,7 +18,7 @@ Apply this priority order:
 4. Approved Figma designs and `DESIGN.md`
 5. `STRATEGY.md`
 6. `docs/planning/project-handoff.md` for approved discovery decisions not superseded by a source above
-7. Relevant `docs/solutions/`
+7. Relevant `docs/solutions/` — documented solutions to past bugs, best practices, and workflow patterns, organized by category with YAML frontmatter such as `module`, `tags`, and `problem_type`; consult it when implementing or debugging a documented area
 8. Existing repository conventions
 
 Stop and report conflicts instead of changing approved artifacts or silently choosing one interpretation.
