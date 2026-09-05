@@ -1,11 +1,11 @@
 # Workflow Status
 
-> Updated: 2026-09-05 00:13 KST
+> Updated: 2026-09-05 15:08 KST
 
 ## Current state
 
-- Status: awaiting approval
-- Stage: Pre-Stage 1 foundation
+- Status: in progress
+- Stage: Stage 1 — Project Foundation (`/ce-strategy`)
 
 ## Active work
 
@@ -17,14 +17,12 @@
 
 ## Current checkpoint
 
-- Last completed: Pre-Stage 1 foundation prepared and verified
-- Latest verification: `git diff --check` — passed
+- Last completed: `/ce-setup` completed and approved; repo config creation is deferred until an active setting is needed
+- Latest verification: setup diff review and `git diff --check` — passed
 
 ## Review focus
 
-- `AGENTS.md::Sources of Truth` — Handoff priority and Stage 1 approval gate
-- `docs/planning/project-handoff.md::Supporting Artifacts` — Current paths and local-only benchmark
-- `.github/pull_request_template.md` — Required implementation evidence
+- None
 
 ## Remaining risk
 
@@ -36,5 +34,5 @@
 
 ## Next action
 
-- Owner: User
-- Action: Approve pushing the initial foundation commit.
+- Owner: Codex
+- Action: Run `/ce-strategy` repository grounding and begin the first-run interview.
