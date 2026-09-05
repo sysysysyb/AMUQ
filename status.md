@@ -4,37 +4,37 @@
 
 ## Current state
 
-* Status: awaiting approval
-* Stage: Pre-Stage 1 foundation
+- Status: awaiting approval
+- Stage: Pre-Stage 1 foundation
 
 ## Active work
 
-* Issue: None
-* Branch: `main`
-* Pull Request: None
-* Plan: `docs/planning/project-handoff.md`
-* Design: Mammo Cert Prep Figma references in `AGENTS.md`
+- Issue: None
+- Branch: `main`
+- Pull Request: None
+- Plan: `docs/planning/project-handoff.md`
+- Design: Mammo Cert Prep Figma references in `AGENTS.md`
 
 ## Current checkpoint
 
-* Last completed: Pre-Stage 1 foundation prepared and verified
-* Latest verification: `git diff --check` — passed
+- Last completed: Pre-Stage 1 foundation prepared and verified
+- Latest verification: `git diff --check` — passed
 
 ## Review focus
 
-* `AGENTS.md::Sources of Truth` — Handoff priority and Stage 1 approval gate
-* `docs/planning/project-handoff.md::Supporting Artifacts` — Current paths and local-only benchmark
-* `.github/pull_request_template.md` — Required implementation evidence
+- `AGENTS.md::Sources of Truth` — Handoff priority and Stage 1 approval gate
+- `docs/planning/project-handoff.md::Supporting Artifacts` — Current paths and local-only benchmark
+- `.github/pull_request_template.md` — Required implementation evidence
 
 ## Remaining risk
 
-* The official Codex Superpowers package trails the upstream release but includes the required TDD skill.
+- None
 
 ## Blockers
 
-* None
+- None
 
 ## Next action
 
-* Owner: User
-* Action: Approve pushing the initial foundation commit.
+- Owner: User
+- Action: Approve pushing the initial foundation commit.
