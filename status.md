@@ -1,30 +1,29 @@
 # Workflow Status
 
-> Updated: 2026-09-07 02:54 KST
+> Updated: 2026-09-07 03:04 KST
 
 ## Current state
 
 - Status: review
-- Stage: Stage 1 — Project Foundation review
+- Stage: Workflow policy review before Stage 2
 
 ## Active work
 
 - Issue: None
-- Branch: `docs/establish-product-foundation`
-- Pull Request: [#2](https://github.com/sysysysyb/AMUQ/pull/2)
+- Branch: `chore/standardize-git-workflow`
+- Pull Request: [#3](https://github.com/sysysysyb/AMUQ/pull/3)
 - Plan: `docs/planning/project-handoff.md`
 - Design: Mammo Cert Prep Figma references in `AGENTS.md`
 
 ## Current checkpoint
 
-- Last completed: Replacement Pull Request #2 opened with only the approved product foundation and strategy scope
-- Latest verification: Strategy template checklist and `git diff --check` — passed
+- Last completed: Pull Request #2 merged and standalone workflow policy Pull Request #3 opened
+- Latest verification: Branch naming and PR monitoring policy checks plus `git diff --check` — passed
 
 ## Review focus
 
-- `STRATEGY.md::Purpose and Positioning` — Confirm that the guiding approach directly addresses the learning-progress problem
-- `STRATEGY.md::Key metrics and Tracks` — Confirm that the metrics and investment areas match the approved strategy
-- `.compound-engineering/config.example.yaml` — Confirm that optional Compound Engineering settings remain inactive examples
+- `AGENTS.md::Git Rules` — Confirm the branch formats and solo-project PR handoff rule
+- `.compound-engineering/config.yaml::auto_babysit` — Confirm that automatic PR monitoring is disabled
 
 ## Remaining risk
 
@@ -37,4 +36,4 @@
 ## Next action
 
 - Owner: User
-- Action: Review and approve Pull Request #2 for Rebase and merge.
+- Action: Review and approve Pull Request #3 for Rebase and merge.
