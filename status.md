@@ -1,6 +1,6 @@
 # Workflow Status
 
-> Updated: 2026-09-07 02:21 KST
+> Updated: 2026-09-07 02:28 KST
 
 ## Current state
 
@@ -17,14 +17,14 @@
 
 ## Current checkpoint
 
-- Last completed: Stage 1 branch pushed and Pull Request #1 opened
-- Latest verification: Strategy template checklist and `git diff --check` — passed
+- Last completed: Pull Request #1 opened and automatic PR monitoring disabled for this solo project
+- Latest verification: Strategy template checklist, watcher opt-out check, and `git diff --check` — passed
 
 ## Review focus
 
 - `STRATEGY.md::Purpose and Positioning` — Confirm that the strategy connects the core problem to the guiding approach
-- `.compound-engineering/config.example.yaml::configuration catalog` — Confirm that optional settings remain inactive examples
-- `status.md::Current state and Next action` — Confirm that the review gate and next owner are accurate
+- `AGENTS.md::Git Rules` — Confirm that PRs are handed directly to the owner without automatic monitoring
+- `.compound-engineering/config.yaml::auto_babysit` — Confirm that the standing watcher opt-out is active
 
 ## Remaining risk
 

@@ -222,4 +222,5 @@ Run `/ce-strategy` again only when the product direction, target user, core valu
 - Use `git switch`, not `git checkout`.
 - Commit cohesive completed units using an existing Gitmoji and a capitalized Conventional Commit type.
 - Do not push, create a PR, or merge without explicit user approval.
+- This is a solo project. Do not run `ce-babysit-pr` or otherwise monitor a Pull Request unless the user explicitly requests monitoring in the current turn. After creating or updating a Pull Request, report it immediately and wait for user review.
 - Use `Rebase and merge` by default. Do not choose another merge strategy without explicit approval.
