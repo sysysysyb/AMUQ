@@ -1,11 +1,11 @@
 # Workflow Status
 
-> Updated: 2026-09-05 15:08 KST
+> Updated: 2026-09-07 01:59 KST
 
 ## Current state
 
-- Status: in progress
-- Stage: Stage 1 — Project Foundation (`/ce-strategy`)
+- Status: awaiting approval
+- Stage: Stage 1 — Project Foundation complete
 
 ## Active work
 
@@ -17,8 +17,8 @@
 
 ## Current checkpoint
 
-- Last completed: `/ce-setup` completed and approved; repo config creation is deferred until an active setting is needed
-- Latest verification: setup diff review and `git diff --check` — passed
+- Last completed: `/ce-strategy` completed and approved strategy draft written to `STRATEGY.md`
+- Latest verification: Strategy template checklist and `git diff --check` — passed
 
 ## Review focus
 
@@ -34,5 +34,5 @@
 
 ## Next action
 
-- Owner: Codex
-- Action: Run `/ce-strategy` repository grounding and begin the first-run interview.
+- Owner: User
+- Action: Approve starting Stage 2 with `/ce-brainstorm`.
