@@ -149,7 +149,7 @@ Work on one Issue at a time.
 
 - Read the Issue, mapped U-IDs, approved artifacts, and relevant `docs/solutions/`.
 - Inspect the working tree and report unrelated or unexpected changes without modifying them.
-- Fetch remote changes, update `main` using fast-forward only, and create `feat/<issue-number>-<short-slug>` with `git switch`.
+- Fetch remote changes, update `main` using fast-forward only, and create `<type>/<issue-number>-<imperative-verb>-<short-scope>` with `git switch`.
 - Report scope, exclusions, task order, test plan, risks, and verification commands; then request approval.
 
 #### 6.2 Implement
@@ -222,7 +222,7 @@ Run `/ce-strategy` again only when the product direction, target user, core valu
 - Use `git switch`, not `git checkout`.
 - Commit cohesive completed units using an existing Gitmoji and a capitalized Conventional Commit type.
 - Name non-Issue branches `<type>/<imperative-verb>-<short-scope>` and describe the work itself instead of a workflow stage or stage number.
-- For Issue branches, use `<type>/<issue-number>-<imperative-verb>-<short-scope>`; this is the detailed form of Stage 6's `<type>/<issue-number>-<short-slug>` pattern.
+- For Issue branches, use `<type>/<issue-number>-<imperative-verb>-<short-scope>`.
 - Do not push, create a PR, or merge without explicit user approval.
 - This is a solo project. Do not run `ce-babysit-pr` or otherwise monitor a Pull Request unless the user explicitly requests monitoring in the current turn. After creating or updating a Pull Request, report it immediately and wait for user review.
 - Use `Rebase and merge` by default. Do not choose another merge strategy without explicit approval.
