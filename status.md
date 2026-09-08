@@ -1,28 +1,29 @@
 # Workflow Status
 
-> Updated: 2026-09-09 01:43 KST
+> Updated: 2026-09-09 01:54 KST
 
 ## Current state
 
-- Status: awaiting approval
-- Stage: Stage 3 — UX and UI Design (not started)
+- Status: review
+- Stage: Stage 2 — Requirements
 
 ## Active work
 
 - Issue: None
 - Branch: `docs/define-mvp-requirements`
-- Pull Request: None
+- Pull Request: [#4](https://github.com/sysysysyb/AMUQ/pull/4)
 - Plan: `docs/plans/2026-09-09-0037-feat-amuq-mvp-requirements-plan.md`
 - Design: None
 
 ## Current checkpoint
 
-- Last completed: Requirements-only unified plan approved by sy.
-- Latest verification: Revised requirements scan and `git diff --check` — passed
+- Last completed: Requirements-only unified plan approved and Pull Request #4 opened.
+- Latest verification: Requirements structure scan and `git diff --check origin/main...HEAD` — passed
 
 ## Review focus
 
-- None
+- `docs/plans/2026-09-09-0037-feat-amuq-mvp-requirements-plan.md::Product Contract` — Confirm the approved MVP scope and behavioral invariants.
+- `docs/plans/2026-09-09-0037-feat-amuq-mvp-requirements-plan.md::Acceptance Examples` — Confirm the key boundary and failure cases.
 
 ## Remaining risk
 
@@ -35,4 +36,4 @@
 ## Next action
 
 - Owner: User
-- Action: Approve starting Stage 3 with `/impeccable shape`.
+- Action: Review and approve Pull Request #4 for Rebase and merge.
