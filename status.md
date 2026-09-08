@@ -1,33 +1,32 @@
 # Workflow Status
 
-> Updated: 2026-09-07 03:04 KST
+> Updated: 2026-09-09 01:43 KST
 
 ## Current state
 
-- Status: review
-- Stage: Workflow policy review before Stage 2
+- Status: awaiting approval
+- Stage: Stage 3 — UX and UI Design (not started)
 
 ## Active work
 
 - Issue: None
-- Branch: `chore/standardize-git-workflow`
-- Pull Request: [#3](https://github.com/sysysysyb/AMUQ/pull/3)
-- Plan: `docs/planning/project-handoff.md`
-- Design: Mammo Cert Prep Figma references in `AGENTS.md`
+- Branch: `docs/define-mvp-requirements`
+- Pull Request: None
+- Plan: `docs/plans/2026-09-09-0037-feat-amuq-mvp-requirements-plan.md`
+- Design: None
 
 ## Current checkpoint
 
-- Last completed: Pull Request #2 merged and standalone workflow policy Pull Request #3 opened
-- Latest verification: Branch naming and PR monitoring policy checks plus `git diff --check` — passed
+- Last completed: Requirements-only unified plan approved by sy.
+- Latest verification: Revised requirements scan and `git diff --check` — passed
 
 ## Review focus
 
-- `AGENTS.md::Git Rules` — Confirm the branch formats and solo-project PR handoff rule
-- `.compound-engineering/config.yaml::auto_babysit` — Confirm that automatic PR monitoring is disabled
+- None
 
 ## Remaining risk
 
-- None
+- AI model, PDF and generation limits, similarity threshold, and abandoned-job retention require feasibility evidence during planning.
 
 ## Blockers
 
@@ -36,4 +35,4 @@
 ## Next action
 
 - Owner: User
-- Action: Review and approve Pull Request #3 for Rebase and merge.
+- Action: Approve starting Stage 3 with `/impeccable shape`.
