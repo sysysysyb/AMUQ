@@ -2,7 +2,7 @@
 target: Final Screens — Revised (right-side drafts excluded)
 total_score: 32
 max_score: 40
-na_heuristics: 
+na_heuristics:
 p0_count: 0
 p1_count: 0
 target_identity: "url:https://www.figma.com/design/iArpXyXjJ3rNCDP2QfU6s8/AMUQ"

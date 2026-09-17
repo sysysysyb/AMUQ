@@ -2,7 +2,7 @@
 target: Final Screens 최종 검토
 total_score: 25
 max_score: 40
-na_heuristics: 
+na_heuristics:
 p0_count: 0
 p1_count: 5
 target_identity: "url:https://www.figma.com/design/iArpXyXjJ3rNCDP2QfU6s8/AMUQ"
