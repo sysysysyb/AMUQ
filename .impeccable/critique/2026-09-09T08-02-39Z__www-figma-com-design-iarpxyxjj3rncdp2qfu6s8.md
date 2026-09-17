@@ -2,7 +2,7 @@
 target: AMUQ Stage 3 Figma final screens and prototype
 total_score: 21
 max_score: 40
-na_heuristics: 
+na_heuristics:
 p0_count: 0
 p1_count: 5
 target_identity: "url:https://www.figma.com/design/iArpXyXjJ3rNCDP2QfU6s8"
