@@ -1,34 +1,32 @@
 # Workflow Status
 
-> Updated: 2026-09-09 02:12 KST
+> Updated: 2026-09-18 00:49 KST
 
 ## Current state
 
-- Status: review
-- Stage: Stage 2 — Requirements
+- Status: awaiting approval
+- Stage: Stage 3 - UX and UI Design
 
 ## Active work
 
 - Issue: None
-- Branch: `docs/define-mvp-requirements`
-- Pull Request: [#4](https://github.com/sysysysyb/AMUQ/pull/4)
+- Branch: `docs/shape-amuq-design`
+- Pull Request: None
 - Plan: `docs/plans/2026-09-09-0037-feat-amuq-mvp-requirements-plan.md`
-- Design: None
+- Design: [Final Screens](https://www.figma.com/design/iArpXyXjJ3rNCDP2QfU6s8/AMUQ?node-id=1032-9888) / [Prototypes](https://www.figma.com/design/iArpXyXjJ3rNCDP2QfU6s8/AMUQ?node-id=4-16)
 
 ## Current checkpoint
 
-- Last completed: Pull Request #4 content standardized in English and the PR template language rule added.
-- Latest verification: PR template language rule and `git diff --check` — passed
+- Last completed: User approved `DESIGN.md`, completing the Stage 3 design artifacts.
+- Latest verification: Design contract coverage and source links checked against R1-R45 and the approved responsive flows.
 
 ## Review focus
 
-- `docs/plans/2026-09-09-0037-feat-amuq-mvp-requirements-plan.md::Product Contract` — Confirm the approved MVP scope and behavioral invariants.
-- `docs/plans/2026-09-09-0037-feat-amuq-mvp-requirements-plan.md::Acceptance Examples` — Confirm the key boundary and failure cases.
-- `.github/pull_request_template.md::language comment` — Confirm that future PR titles and descriptions must use English.
+- Stage 3 commits — review the separated commit history before PR creation.
 
 ## Remaining risk
 
-- AI model, PDF and generation limits, similarity threshold, and abandoned-job retention require feasibility evidence during planning.
+- The chart tooltip is behaviorally specified in `DESIGN.md` but was not authored as a visual Figma overlay.
 
 ## Blockers
 
@@ -37,4 +35,4 @@
 ## Next action
 
 - Owner: User
-- Action: Review and approve Pull Request #4 for Rebase and merge.
+- Action: Review and approve the Stage 3 commits for PR creation.
