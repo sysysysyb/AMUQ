@@ -47,7 +47,7 @@
 # Per-skill output format default. Selects the exclusive format the artifact
 # is written in: `md` produces a markdown file, `html` produces a single
 # self-contained HTML file. The two are mutually exclusive -- there is no
-# sibling artifact. See DESIGN.md or your agent instructions to influence
+# sibling artifact. See docs/DESIGN.md or your agent instructions to influence
 # HTML styling. Precedence: a format request in your prompt for that run wins
 # (e.g. "output:html" or "make it HTML"); a preference you established earlier
 # (in-session, saved to memory, or in your agent instructions) overrides these

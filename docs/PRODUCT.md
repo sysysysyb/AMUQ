@@ -57,7 +57,7 @@ AMUQ combines staged AI assistance with explicit learner review: it proposes doc
 
 ## Evidence on Hand
 
-- `STRATEGY.md` defines the approved product direction, boundaries, metrics, and brand.
+- `docs/STRATEGY.md` defines the approved product direction, boundaries, metrics, and brand.
 - `docs/plans/2026-09-09-0037-feat-amuq-mvp-requirements-plan.md` is the approved requirements-only product contract.
 - `docs/planning/question-schema-and-data-model-v1.md` and `docs/contracts/generic-question-package.schema.json` provide approved question and learning-data constraints.
 - The Mammo Cert Prep FigJam, wireframes, component system, final screens, and prototype linked from `AGENTS.md` are reference evidence. The FigJam flow named `1. 전체 진입 및 학습 재개 (실패 버전)` is a negative example only.

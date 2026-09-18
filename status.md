@@ -1,34 +1,33 @@
 # Workflow Status
 
-> Updated: 2026-09-18 01:01 KST
+> Updated: 2026-09-18 14:00 KST
 
 ## Current state
 
-- Status: review
-- Stage: Stage 3 - UX and UI Design
+- Status: awaiting approval
+- Stage: Stage 4 - Implementation Planning
 
 ## Active work
 
 - Issue: None
-- Branch: `docs/shape-amuq-design`
-- Pull Request: [#5](https://github.com/sysysysyb/AMUQ/pull/5)
+- Branch: `docs/plan-amuq-implementation`
+- Pull Request: None
 - Plan: `docs/plans/2026-09-09-0037-feat-amuq-mvp-requirements-plan.md`
 - Design: [Final Screens](https://www.figma.com/design/iArpXyXjJ3rNCDP2QfU6s8/AMUQ?node-id=1032-9888) / [Prototypes](https://www.figma.com/design/iArpXyXjJ3rNCDP2QfU6s8/AMUQ?node-id=4-16)
 
 ## Current checkpoint
 
-- Last completed: Opened Pull Request #5 for the approved Stage 3 design artifacts.
-- Latest verification: Design contract assertions, seven critique reports, JSON parsing, plugin syntax, and full-range whitespace checks — passed.
+- Last completed: Moved the approved design, product, and strategy documents under `docs/` and updated repository references.
+- Latest verification: Repository path search, file existence checks, `git diff --check`, and rename-content comparison — passed.
 
 ## Review focus
 
-- `DESIGN.md` — confirm the approved implementation contract.
-- `docs/plans/2026-09-09-0037-feat-amuq-mvp-requirements-plan.md::R7 and R33` — confirm theme ownership and responsive pagination.
-- `.impeccable/critique/2026-09-17T07-20-07Z__www-figma-com-design-iarpxyxjj3rncdp2qfu6s8-amuq.md` — confirm the final critique and accepted trade-offs.
+- `docs/DESIGN.md` — confirm the implementation contract is available at its new canonical path.
+- `AGENTS.md` — confirm workflow references point to the reorganized documents.
 
 ## Remaining risk
 
-- The chart tooltip is behaviorally specified in `DESIGN.md` but was not authored as a visual Figma overlay.
+- The chart tooltip is behaviorally specified in `docs/DESIGN.md` but was not authored as a visual Figma overlay.
 
 ## Blockers
 
@@ -37,4 +36,4 @@
 ## Next action
 
 - Owner: User
-- Action: Review and approve Pull Request #5 for Rebase and merge.
+- Action: Review the document reorganization and approve its commit.
