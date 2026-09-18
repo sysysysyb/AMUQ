@@ -15,7 +15,7 @@ execution: code
 
 - **Objective:** 개인 학습자가 자신의 PDF 자료를 신뢰할 수 있는 비공개 문제은행으로 바꾸고, 한 서비스에서 시험 대비 학습과 재학습 현황을 이어서 관리할 수 있게 한다.
 - **Means:** AI 제안과 사용자 검토를 결합한 단계형 문제 생성 흐름을 완전한 테스트·재학습·통계 경험에 연결한다.
-- **Product authority:** `STRATEGY.md`가 제품 방향과 경계를 정하며, 이 Product Contract가 AMUQ MVP의 사용자 행동과 범위를 구체화한다.
+- **Product authority:** `docs/STRATEGY.md`가 제품 방향과 경계를 정하며, 이 Product Contract가 AMUQ MVP의 사용자 행동과 범위를 구체화한다.
 - **Open blockers:** None.
 
 ---
@@ -257,7 +257,7 @@ flowchart TB
 
 ### Sources
 
-- `STRATEGY.md` — AMUQ의 사용자, 문제, 포지셔닝, MVP 경계와 성공 지표
+- `docs/STRATEGY.md` — AMUQ의 사용자, 문제, 포지셔닝, MVP 경계와 성공 지표
 - `docs/planning/project-handoff.md` — 인증, 계정 수명주기, AI 처리와 대시보드에 관한 선행 결정
 - `docs/planning/question-schema-and-data-model-v1.md` — 단일정답 2~8지선다, 평면 챕터, 문제 버전과 학습 기록의 선행 계약
 - `AGENTS.md` — 개인정보, AI 초안 확인, 서버 채점, 삭제와 검증에 관한 프로젝트 가드레일

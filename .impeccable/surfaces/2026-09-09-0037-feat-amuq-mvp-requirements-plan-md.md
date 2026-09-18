@@ -15,4 +15,4 @@ FIRST VIEWPORT: Global home shows one AMUQ header, a direct `문제 생성` acti
 
 FORM: Mobile is a single decisive column; desktop preserves the same order while placing source context beside the active review. Deeper screens replace the logo with `← 문제은행 이름`. The route line advances only after a confirmed step; reduced motion changes it instantly.
 
-FINISH: unreviewed and undocumented is unfinished; this build ends with the finish review, the verdict, DESIGN.md, and every shipping raster carrying its provenance
+FINISH: unreviewed and undocumented is unfinished; this build ends with the finish review, the verdict, docs/DESIGN.md, and every shipping raster carrying its provenance

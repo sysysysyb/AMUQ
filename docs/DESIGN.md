@@ -14,7 +14,7 @@ figma_file: iArpXyXjJ3rNCDP2QfU6s8
 - [Final Screens](https://www.figma.com/design/iArpXyXjJ3rNCDP2QfU6s8/AMUQ?node-id=1032-9888): 화면, 컴포넌트 상태, 타이포그래피, 색상, 간격과 반응형 배치의 기준
 - [Prototypes](https://www.figma.com/design/iArpXyXjJ3rNCDP2QfU6s8/AMUQ?node-id=4-16): 주요 흐름, 화면 전환과 시작 지점의 기준
 - 요구사항: `docs/plans/2026-09-09-0037-feat-amuq-mvp-requirements-plan.md`
-- 제품 방향: `STRATEGY.md`
+- 제품 방향: `docs/STRATEGY.md`
 
 Figma에서는 현재 `Final Screens` 페이지의 실제로 보이는 최종 프레임만 구현 대상으로 사용한다. 숨김 또는 deprecated 프레임, 오른쪽 초안, 이전 `Final Screens`와 이전 프로토타입은 참고하거나 복원하지 않는다. 화면 이름이나 문서 설명보다 렌더가 다르면 현재 보이는 최종 프레임을 우선 확인하고, 요구사항과 충돌하면 구현 전에 보고한다.
 

@@ -33,7 +33,7 @@ body:
     id: design
     attributes:
       label: Design references
-      placeholder: Figma URL or DESIGN.md section
+      placeholder: Figma URL or docs/DESIGN.md section
   - type: textarea
     id: tests
     attributes:

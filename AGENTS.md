@@ -15,8 +15,8 @@ Apply this priority order:
 1. Current GitHub Issue
 2. Approved implementation-ready unified plan
 3. Approved requirements-only unified plan
-4. Approved Figma designs and `DESIGN.md`
-5. `STRATEGY.md`
+4. Approved Figma designs and `docs/DESIGN.md`
+5. `docs/STRATEGY.md`
 6. `docs/planning/project-handoff.md` for approved discovery decisions not superseded by a source above
 7. Relevant `docs/solutions/` — documented solutions to past bugs, best practices, and workflow patterns, organized by category with YAML frontmatter such as `module`, `tags`, and `problem_type`; consult it when implementing or debugging a documented area
 8. Existing repository conventions
@@ -48,7 +48,7 @@ In FigJam, `1. 전체 진입 및 학습 재개 (실패 버전)` is a negative ex
 
 ## Design Fidelity
 
-Approved Figma screens and `DESIGN.md` are the UI source of truth.
+Approved Figma screens and `docs/DESIGN.md` are the UI source of truth.
 
 - Implement measured Figma typography, colors, spacing, dimensions, alignment, component states, and responsive behavior without substituting personal preferences.
 - Inspect the exact Figma nodes and relevant design properties instead of relying only on screenshots.
@@ -93,13 +93,13 @@ Run in order:
 2. Report the setup result and obtain explicit user approval
 3. `/ce-strategy`
 
-Use `/ce-setup` to inspect and initialize the environment. Use `/ce-strategy` to create or update `STRATEGY.md` with target users, problem, value, MVP objective, success criteria, and exclusions.
+Use `/ce-setup` to inspect and initialize the environment. Use `/ce-strategy` to create or update `docs/STRATEGY.md` with target users, problem, value, MVP objective, success criteria, and exclusions.
 
 Request approval after `/ce-setup` before running `/ce-strategy`, then report the strategy output and request approval again before Stage 2.
 
 ### Stage 2: Requirements
 
-Run `/ce-brainstorm` using the current project context and `STRATEGY.md`. Clarify requirements one question at a time, compare meaningful alternatives, and produce a requirements-only unified plan covering flows, states, edge cases, accessibility, assumptions, and exclusions.
+Run `/ce-brainstorm` using the current project context and `docs/STRATEGY.md`. Clarify requirements one question at a time, compare meaningful alternatives, and produce a requirements-only unified plan covering flows, states, edge cases, accessibility, assumptions, and exclusions.
 
 Do not run `superpowers:brainstorming` or `superpowers:writing-plans` for the same scope unless explicitly requested.
 
@@ -118,7 +118,7 @@ Review the artifact with the user and request approval before Stage 3.
    - Prototype connections for critical flows
 4. Run `/impeccable critique`, fix P0/P1 and clear in-scope defects, and perform one bounded re-verification.
 5. Present the final artifacts, findings, fixes, and remaining trade-offs for approval.
-6. After approval, finalize `DESIGN.md` as the implementation contract.
+6. After approval, finalize `docs/DESIGN.md` as the implementation contract.
 
 Figma MCP, not Impeccable, must create or edit FigJam and Figma artifacts. Do not begin Stage 4 without final design approval.
 
@@ -129,7 +129,7 @@ Run in order:
 1. `/ce-plan`
 2. `/ce-doc-review`
 
-Expand the approved requirements into an implementation-ready unified plan using the approved design, `DESIGN.md`, `STRATEGY.md`, relevant `docs/solutions/`, and the codebase. Include U-IDs, dependencies, execution order, target files, tests, E2E flows, verification commands, completion criteria, and exclusions.
+Expand the approved requirements into an implementation-ready unified plan using the approved design, `docs/DESIGN.md`, `docs/STRATEGY.md`, relevant `docs/solutions/`, and the codebase. Include U-IDs, dependencies, execution order, target files, tests, E2E flows, verification commands, completion criteria, and exclusions.
 
 Review without changing approved requirements or designs, then request approval before Stage 5.
 
