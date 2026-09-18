@@ -1,6 +1,6 @@
 # Workflow Status
 
-> Updated: 2026-09-18 14:00 KST
+> Updated: 2026-09-18 14:08 KST
 
 ## Current state
 
@@ -17,17 +17,17 @@
 
 ## Current checkpoint
 
-- Last completed: Moved the approved design, product, and strategy documents under `docs/` and updated repository references.
-- Latest verification: Repository path search, file existence checks, `git diff --check`, and rename-content comparison — passed.
+- Last completed: Audited Stage 4 planning inputs and resolved superseded lower-priority assumptions by source precedence.
+- Latest verification: R/F/AE continuity, JSON Schema parsing, local input existence, and repository baseline checks — passed.
 
 ## Review focus
 
-- `docs/DESIGN.md` — confirm the implementation contract is available at its new canonical path.
-- `AGENTS.md` — confirm workflow references point to the reorganized documents.
+- `docs/planning/stage-4-input-audit.md::우선순위로 해소된 차이` — confirm the superseded Mammo, demo, archive, and import assumptions.
+- `docs/planning/stage-4-input-audit.md::/ce-plan에서 결정할 항목` — confirm the remaining technical decision set.
 
 ## Remaining risk
 
-- The chart tooltip is behaviorally specified in `docs/DESIGN.md` but was not authored as a visual Figma overlay.
+- AI model quality and PDF limits still require feasibility evidence during implementation planning.
 
 ## Blockers
 
@@ -36,4 +36,4 @@
 ## Next action
 
 - Owner: User
-- Action: Review the document reorganization and approve its commit.
+- Action: Review the Stage 4 input audit and approve its commit.
