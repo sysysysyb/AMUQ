@@ -101,8 +101,6 @@ Request approval after `/ce-setup` before running `/ce-strategy`, then report th
 
 Run `/ce-brainstorm` using the current project context and `docs/STRATEGY.md`. Clarify requirements one question at a time, compare meaningful alternatives, and produce a requirements-only unified plan covering flows, states, edge cases, accessibility, assumptions, and exclusions.
 
-Do not run `superpowers:brainstorming` or `superpowers:writing-plans` for the same scope unless explicitly requested.
-
 Review the artifact with the user and request approval before Stage 3.
 
 ### Stage 3: UX and UI Design
@@ -154,7 +152,7 @@ Work on one Issue at a time.
 
 #### 6.2 Implement
 
-Run `/ce-work` and explicitly follow `superpowers:test-driven-development` for every testable behavior change:
+Run `/ce-work` for implementation. Follow this TDD loop for every testable behavior change:
 
 1. Write the smallest relevant test.
 2. Run it and observe the intended failure.
@@ -162,7 +160,7 @@ Run `/ce-work` and explicitly follow `superpowers:test-driven-development` for e
 4. Confirm the test passes.
 5. Refactor while keeping tests green.
 
-Do not write production behavior before the corresponding test failure. Do not use `superpowers:subagent-driven-development` as another implementation orchestrator.
+Do not write production behavior before the corresponding test failure. Do not use another implementation orchestrator alongside `/ce-work`.
 
 For non-trivial changes, run `/ce-simplify-code` without changing approved behavior. Apply the Validation Policy.
 

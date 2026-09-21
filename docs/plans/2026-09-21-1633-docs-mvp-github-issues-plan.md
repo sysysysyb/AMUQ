@@ -37,7 +37,7 @@ execution: knowledge-work
 | 10 | Add chapter, wrong-answer, and bookmark relays | U10, R35-R37, F4, AE8 | U08, implemented after U09 | 세 릴레이가 시작 대상을 고정하고 한 문제씩 즉시 피드백과 세션 요약을 제공한다. | 대상 snapshot, 중복 방지, 오답 해제, 북마크 독립성과 세 릴레이 E2E | `docs/DESIGN.md` 7.5 | `feature`, `backend`, `frontend` |
 | 11 | Add the learning dashboard and progress statistics | U11, R38-R42 | U09, U10 | 현재 문제은행의 최근 학습과 기간별 통계를 같은 데이터 원본에서 제공한다. | 기간 경계, 분모 0, bank 격리, 정렬, 차트 접근성과 통계 E2E | `docs/DESIGN.md` 7.6 | `feature`, `backend`, `frontend` |
 | 12 | Add the isolated demo and verified data deletion | U12, R2, R4, R8, R26, R45, F6, AE10 | U03, U06, U08-U11 | 6시간 격리 데모와 계정 및 파일 데이터의 접근 차단, 삭제와 재처리를 제공한다. | 데모 격리 및 만료, 삭제 경합, 외부 정리 재시도, cross-user denial과 두 브라우저 E2E | Final Screens와 Prototypes의 데모 및 계정 관리 흐름 | `feature`, `backend`, `frontend` |
-| 13 | Add privacy-safe observability and release validation | U13, R43-R45, Success Criteria | U01-U12 | Sentry와 PostHog로 오류와 핵심 흐름을 개인정보 없이 관측하고 전체 MVP를 출시 기준으로 재검증한다. | 이벤트 allowlist, scrubber, provider 장애 비간섭, 전체 critical E2E, Figma 비교와 lifecycle drill | `docs/DESIGN.md` 전체 검증 계약과 승인된 Figma | `backend`, `frontend` |
+| 13 | Add privacy-safe observability and release validation | U13, R43-R45, Success Criteria | U01-U12 | Sentry와 PostHog로 오류와 핵심 흐름을 개인정보 없이 관측하고 전체 MVP를 출시 기준으로 재검증하며 서비스 README를 완성한다. | 이벤트 allowlist, scrubber, provider 장애 비간섭, 전체 critical E2E, Figma 비교, lifecycle drill과 README 검토 | `docs/DESIGN.md` 전체 검증 계약과 승인된 Figma | `backend`, `frontend`, `docs` |
 
 ## Issue Body Contract
 
