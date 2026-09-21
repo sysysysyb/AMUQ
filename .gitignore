@@ -3,6 +3,17 @@
 .env.*
 !.env.example
 
+# Dependencies and generated output
+node_modules/
+.pnpm-store/
+.next/
+dist/
+coverage/
+test-results/
+playwright-report/
+blob-report/
+*.tsbuildinfo
+
 # Local tool state
 .compound-engineering/*.local.yaml
 .context/compound-engineering/
