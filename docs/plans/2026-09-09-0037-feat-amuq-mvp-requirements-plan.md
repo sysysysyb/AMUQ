@@ -16,7 +16,7 @@ execution: code
 - **Objective:** 개인 학습자가 자신의 PDF 자료를 신뢰할 수 있는 비공개 문제은행으로 바꾸고, 한 서비스에서 시험 대비 학습과 재학습 현황을 이어서 관리할 수 있게 한다.
 - **Means:** AI 제안과 사용자 검토를 결합한 단계형 문제 생성 흐름을 완전한 테스트, 재학습, 통계 경험에 연결한다.
 - **Product authority:** `docs/STRATEGY.md`가 제품 방향과 경계를 정하며, 이 Product Contract가 AMUQ MVP의 사용자 행동과 범위를 구체화한다.
-- **Open blockers:** 없음. AI 모델과 페이지 및 문항 한도는 미해결 범위가 아니라 U04의 타당성 평가를 거쳐 확정할 구현 항목이다.
+- **Open blockers:** 없음. AI 공급자와 모델, 페이지 및 문항 한도, 출시 시점의 생성 한도는 미해결 범위가 아니라 U04의 타당성 평가를 거쳐 확정할 구현 항목이다.
 
 ---
 
@@ -234,6 +234,7 @@ flowchart TB
 - 과거 테스트의 문항별 상세 열람과 이전 문제 버전 비교
 - 문제은행 보관 및 복원과 삭제 문제 복원
 - 데모의 PDF 및 AI 생성, 데모 기록의 계정 이전, 알림함, 이메일과 푸시 생성 완료 알림
+- PDF 속 예시 문제를 문제은행 초안으로 변환하고, 추가 또는 스타일 참고 중 사용자가 선택하는 기능
 
 **Outside this product's identity**
 
@@ -251,8 +252,9 @@ flowchart TB
 
 ### Planning Resolution
 
-- AI는 OpenAI Responses API의 GPT 계열을 사용한다. 구체 모델과 페이지 및 생성 문항 한도는 U04의 한국어와 영어 텍스트, 스캔 평가 결과로 확정한다.
-- PDF 업로드 크기는 파일당 50MB로 고정하고 클라이언트, 업로드 완료 검증과 처리 시작 경계에서 반복 확인한다.
+- PDF 분석 및 문제 생성 공급자와 모델은 U04에서 OpenAI, Google, Anthropic 후보를 같은 한국어와 영어 텍스트 및 스캔 PDF로 비교한 뒤 하나만 선택한다. 모든 입력 유형의 품질 합격선을 통과한 후보 중 유효 문항당 비용이 가장 낮은 후보를 우선하며, 운영 구현에는 선택한 생성 공급자만 연결한다.
+- PDF에서 감지한 예시 문제는 자동 추가하지 않고 출제 형식 참고에만 사용한다. 사용자 설정과 Question Package 계약이 우선하며, 원문에 가까운 복제와 근거 없는 변형은 허용하지 않는다.
+- PDF 업로드 크기는 파일당 50MB, 즉 50,000,000 bytes로 고정하고 클라이언트, 업로드 완료 검증과 처리 시작 경계에서 반복 확인한다.
 - 완료, 취소, 실패 작업은 즉시 삭제 큐에 넣고 24시간 안에 검증 가능한 삭제 상태에 도달해야 한다. 검토 대기 작업은 마지막 사용자 활동 후 7일, 불완전 업로드는 1시간 뒤 만료한다.
 - 중복 탐지는 자동 판정이 아니다. U04의 라벨링된 유사 및 비유사 쌍으로 임계값을 정하고 한 초안에 최대 3개의 비교 후보만 노출한다.
 - 데모는 방문자별로 격리하고 생성 후 6시간에 만료한다.
@@ -265,7 +267,10 @@ flowchart TB
 - `docs/DESIGN.md`와 승인된 Figma — 화면, 상태, 반응형, 접근성과 구현 충실도의 계약
 - `docs/planning/stage-4-input-audit.md` — 계획 입력 우선순위, 해소된 충돌과 greenfield 기준선
 - `AGENTS.md` — 개인정보, AI 초안 확인, 서버 채점, 삭제와 검증에 관한 프로젝트 가드레일
-- [OpenAI Vector Embeddings](https://developers.openai.com/api/docs/guides/embeddings) — 의미적 관련성을 이용한 중복 가능성 후보 탐색 근거
+- [OpenAI embeddings](https://developers.openai.com/api/docs/guides/embeddings)와 [Gemini embeddings](https://ai.google.dev/gemini-api/docs/embeddings) — U04 중복 탐지 모델 후보의 근거
+- [OpenAI file inputs](https://developers.openai.com/api/docs/guides/file-inputs), [pricing](https://developers.openai.com/api/docs/pricing)과 [data controls](https://platform.openai.com/docs/models/default-usage-policies-by-endpoint) — PDF 입력 경계, 후보 모델 비용과 보존 정책
+- [Gemini document processing](https://ai.google.dev/gemini-api/docs/document-processing), [pricing](https://ai.google.dev/gemini-api/docs/pricing)과 [zero data retention](https://ai.google.dev/gemini-api/docs/zdr) — PDF 처리 경계, 후보 모델 비용과 보존 정책
+- [Claude PDF support](https://platform.claude.com/docs/en/build-with-claude/pdf-support), [structured outputs](https://platform.claude.com/docs/en/build-with-claude/structured-outputs), [pricing](https://platform.claude.com/docs/en/about-claude/pricing)과 [data retention](https://platform.claude.com/docs/en/build-with-claude/api-and-data-retention) — PDF 처리 경계, 구조화 출력 제약, 후보 모델 비용과 보존 정책
 
 현재 대화에서 확정한 PDF 전용 입력, 문제은행 보관 제외, 모든 핵심 학습 모드, 6시간 AMUQ 데모, 50MB PDF 상한과 기존 데이터 이전 제외는 충돌하는 선행 문서보다 우선한다.
 
@@ -275,7 +280,7 @@ flowchart TB
 
 - R1-R45, F1-F6, AE1-AE10의 식별자와 사용자 의미를 유지한다.
 - 이 Planning Contract는 Product Contract를 구현 단위, 파일, 데이터, 테스트와 운영 검증으로 구체화하며 승인된 요구사항이나 디자인을 재해석하지 않는다.
-- U04의 평가 게이트는 구현 한도를 측정해 확정하기 위한 것이며 PDF 생성 또는 학습 순환을 MVP에서 제외할 수 있는 범위 축소 게이트가 아니다.
+- U04의 평가 게이트는 AI 공급자와 모델 및 구현 한도를 측정해 확정하기 위한 것이며 PDF 생성 또는 학습 순환을 MVP에서 제외할 수 있는 범위 축소 게이트가 아니다.
 - 하위 선행 문서의 수동 및 JSON 입력, 문제은행 보관 및 복원, 기존 데이터 이전과 데모 AI 가정은 활성 범위로 되살리지 않는다.
 
 ## Planning Contract
@@ -323,7 +328,7 @@ flowchart TB
 | 인증      | 서버 소유 opaque session, Argon2id, Google OIDC          | 클라이언트가 보낸 사용자 ID를 신뢰하지 않고 이메일과 Google 계정을 한 사용자에게 명시적으로 연결한다.                                                                                    |
 | 파일      | 비공개 Cloudflare R2                                     | 자동 저장 암호화와 객체 수명 주기 규칙으로 개인 PDF 삭제 계약을 보강한다.                                                                                                                 |
 | 이메일    | Resend                                                   | 소량의 인증 및 재설정 메일에 필요한 API, 수신 거부 관리와 webhook을 적은 운영 부담으로 제공한다.                                                                                             |
-| AI        | OpenAI Responses API, `store: false`                     | PDF를 분석해 구조화된 결과를 만들되 모델과 한도는 U04에서 확정하고 모든 결과를 사용자 검토 전 초안으로 취급한다.                                                                          |
+| AI        | U04에서 선정한 단일 생성 공급자 API                      | OpenAI, Google, Anthropic 후보를 평가한 뒤 PDF 분석과 문제 생성에는 하나만 연결한다. 공급자별 보존 최소화 설정과 파일 삭제를 적용하고 모든 결과를 사용자 검토 전 초안으로 취급한다.          |
 | 차트      | Recharts                                                 | 승인된 점수 추이 차트의 반응형 축, 포인트, 키보드 툴팁을 직접 SVG로 다시 만들지 않는다. 같은 데이터를 표로도 제공한다.                                                                      |
 | 오류 관측 | Sentry                                                   | 프론트엔드, API, worker의 예외를 배포 버전과 연결한다. Session Replay, profiling과 전체 로그 수집은 사용하지 않는다.                                                                         |
 | 제품 분석 | PostHog                                                  | 명시적 이벤트로 핵심 퍼널과 이동 경로를 측정한다. 자동 수집 확대, feature flag와 실험은 MVP에서 사용하지 않는다.                                                                          |
@@ -335,6 +340,7 @@ flowchart TB
 - **KTD3. 비공개 객체 저장소는 Cloudflare R2를 사용한다.** (session-settled: user-approved — Railway Buckets 대신 선택: R10과 R26의 비공개 PDF와 검증 가능한 삭제에는 저장 암호화와 객체 수명 주기 안전망이 필요하다.) Governs U04-U06, U12.
 - **KTD4. 트랜잭션 이메일은 Resend를 사용한다.** (session-settled: user-approved — Postmark 대신 선택: R1-R2의 저용량 인증 및 재설정 메일에는 Resend의 단순한 API, suppression과 webhook이면 충분하고 맞춤 보존과 Message Stream은 불필요하다.) Governs U02, U12.
 - **KTD5. Sentry는 오류 관측, PostHog는 제품 행동 분석으로 역할을 분리한다.** (session-settled: user-approved — 한 도구의 모든 기능을 켜는 방식 대신 선택: Sentry replay, PostHog error tracking을 끄고 R43-R45와 성공 지표에 필요한 최소 telemetry만 수집한다.) Governs U13.
+- **KTD6. U04에서 AI 공급자와 모델 하나를 선택하고 운영에는 그 결과만 연결한다.** (session-settled: user-approved — GPT 계열을 미리 고정하거나 여러 공급자를 운영 중 전환하는 구조 대신 선택: 같은 PDF와 출력 계약으로 품질과 유효 문항당 비용을 측정한 뒤 가장 경제적인 합격 후보만 구현한다.) 이 단일 공급자 경계는 PDF 분석과 문제 생성에 적용한다. U04가 별도로 고정하는 중복 탐지 모델은 생성 경로의 runtime fallback으로 사용하지 않는다. 평가용 runner는 공급자별로 둘 수 있지만 범용 provider abstraction과 runtime fallback은 만들지 않는다. Governs U04-U06, U12.
 
 ### High-Level Technical Design
 
@@ -352,7 +358,8 @@ flowchart LR
   Worker[Railway worker] --> Queue
   Worker --> DB
   Worker --> R2
-  Worker --> OpenAI[OpenAI Responses API]
+  Worker --> AI[Selected generation provider]
+  Worker --> Similarity[Selected duplicate detector]
   Worker --> Resend[Resend]
   Browser -. safe product events .-> PostHog[PostHog]
   Browser -. scrubbed errors .-> Sentry[Sentry]
@@ -368,7 +375,7 @@ sequenceDiagram
   participant A as API
   participant R as R2
   participant Q as Worker
-  participant O as OpenAI
+  participant O as Selected generation provider
   participant D as PostgreSQL
   B->>A: upload intent
   A->>D: owner-bound pending material
@@ -378,7 +385,7 @@ sequenceDiagram
   A->>R: HEAD metadata check
   A->>D: enqueue analysis atomically
   Q->>R: stream and validate PDF
-  Q->>O: store:false analysis/generation
+  Q->>O: retention-minimized analysis/generation
   Q->>D: accept only current attempt token
   B->>A: review and idempotent finalize
   A->>D: drafts to revisions + cleanup task
@@ -508,7 +515,7 @@ PostHog의 목적은 “사용자가 어느 흐름을 거쳐 어디에서 중단
 3. cookie 인증을 쓰는 브라우저 상태 변경 요청은 same-origin, `Origin`/CSRF 검증과 safe relative `returnTo`를 강제한다. OAuth callback은 state와 nonce로, provider webhook은 서명, timestamp, event id로 별도 검증하며 이 두 경계에 브라우저 Origin 규칙을 잘못 적용하지 않는다.
 4. PDF는 확장자가 아니라 MIME, magic bytes, 실제 크기와 파서 결과를 서버에서 검증한다. 50MB 초과, 암호화되었거나 손상된 PDF와 허용되지 않은 형식은 job 생성 전에 거절한다.
 5. 업로드 완료 후 R2 `HEAD` 결과의 길이와 owner-bound metadata를 확인하고, worker가 객체를 스트리밍하며 SHA-256, magic bytes, parser 결과를 검증하기 전에는 AI 분석을 시작하지 않는다.
-6. OpenAI 입력과 출력은 신뢰하지 않는다. JSON Schema, semantic validator, 출처 페이지 범위와 금지 콘텐츠 검증을 통과한 결과만 draft로 저장한다.
+6. AI 공급자의 입력과 출력은 신뢰하지 않는다. JSON Schema, semantic validator, 출처 페이지 범위와 금지 콘텐츠 검증을 통과한 결과만 draft로 저장한다.
 7. AI draft는 사용자 확정 transaction 전까지 `ready` revision이 될 수 없다. 부분 확정, 재시도와 최종 확정은 idempotency key와 unique constraint로 중복을 막는다.
 8. 시험은 시작 시 question revision과 option order를 고정한다. 답안 저장에는 단조 증가 version을 사용해 늦게 도착한 이전 요청이 최신 답을 덮지 않게 한다.
 9. 수동 제출과 타이머 자동 제출은 같은 idempotent service를 사용하고 session row lock 안에서 한 번만 점수와 오답 상태를 확정한다.
@@ -643,20 +650,21 @@ MVP에서는 오답 및 통계 projection과 materialized view를 만들지 않�
 - **E2E:** 빈 전역 홈, 여러 bank 목록, bank 진입 및 복귀, 이름 확인 삭제, unauthorized URL 접근과 스크롤 matrix.
 - **Completion:** private bank 소유권과 영구 삭제 불변식이 실제 PostgreSQL integration test에서 증명된다.
 
-### U04 — PDF와 AI 타당성 평가 및 한도 확정
+### U04 — PDF와 AI 공급자 평가 및 한도 확정
 
 - **Covers:** R10-R19, R22의 기술 게이트.
 - **Depends on:** U01, Question Package 계약.
-- **Outcome:** GPT 모델, 페이지 및 생성 문항 한도, 중복 threshold와 운영 예산을 재현 가능한 evidence로 선택한다.
+- **Outcome:** PDF 분석 및 문제 생성 공급자와 모델 하나, 중복 탐지 모델, 페이지 및 생성 문항 한도와 출시 시점의 생성 한도를 재현 가능한 evidence로 선택한다.
 - **Primary files:** `apps/api/src/modules/generation/evaluation/*`, `apps/api/src/modules/generation/validators/*`, `packages/contracts/src/question-package.ts`, `docs/planning/ai-feasibility-results.md`, `tests/fixtures/pdf/*`.
 - **Work:**
-  1. 권리 문제가 없는 한국어와 영어의 20, 50, 100페이지 text PDF와 printed scan PDF fixture를 준비한다. 페이지 수와 별도로 50MB에 가까운 고해상도 scan, 이미지 밀집과 낮은 압축 효율 fixture를 포함한다.
-  2. 후보 GPT 모델에 동일 prompt, schema와 `store: false`를 적용해 구조 성공률, 챕터 및 페이지 coverage, 인용 페이지 유효성, 정답 근거성, 수정 필요율, latency와 비용을 기록한다.
-  3. 첫 후보 실행 전에 구조 성공률, 출처 페이지 정확도, 근거 있는 정답 비율, 중대한 사실 오류, 수정 필요율, peak memory, parse/OCR와 model latency, 비용과 duplicate precision/recall의 최소 합격선 및 동률 선택 순서를 결과 문서에 고정한다. 50MB는 고정하고 page, question, parser resource limit은 모든 fixture에서 합격한 최댓값보다 보수적으로 정한다.
-  4. 라벨링된 duplicate/related/distinct 쌍으로 embedding 후보와 threshold를 비교하고 false-positive/false-negative, top-3 recall과 비용을 기록한다.
-  5. 선택한 model ID, prompt/schema version, page, question, parser resource limit, duplicate threshold를 config와 결과 문서에 고정한다. 모든 후보가 사전 합격선을 넘지 못하면 임의로 한도를 확정하지 않고 계획 충돌로 보고한다.
-- **Tests:** JSON Schema와 semantic validator red/green corpus, malformed/oversize/encrypted/corrupt PDF rejection, page locator bounds, duplicate benchmark regression.
-- **Completion:** 결과가 재실행 가능하고 선택 근거가 수치로 남으며, 어떤 AI 출력도 validator와 사용자 확인을 우회하지 않는다.
+  1. 한국어와 영어의 text, scan, 예시 문제가 섞인 PDF와 20, 50, 100페이지 및 50,000,000-byte 경계 fixture를 준비한다.
+  2. 네 언어 및 형식 구간이 구조, 출처, 정답 근거, 중대 오류와 수정 필요율 합격선을 각각 통과하게 한다. 예시 문제 감지, 스타일 반영, 원문 비복제와 근거 부족 거절도 평가한다.
+  3. paid API의 학습 미사용, 저장 비활성화와 provider file 삭제를 개인정보 합격 조건으로 둔다. 공급자가 통제하는 잔존 기간은 기록하고 최종 선택 전에 사용자 승인을 받는다.
+  4. GPT-5.6 Luna, Gemini 3.8 Flash와 Claude Haiku 4.5를 먼저 비교한다. 필요할 때만 같은 기준으로 공급자별 stable quality-oriented 모델을 하나씩 추가 평가하며, 평가용 runner를 운영용 범용 abstraction으로 만들지 않는다.
+  5. production과 같은 page ID, 전처리, 분할과 provider 호출 경로로 정확한 50MB 경계를 검증한다. 품질 합격 후보 중 API와 후보별 OCR, worker, 저장 및 egress 변동비를 포함한 유효 문항당 비용이 가장 낮은 모델을 선택한다.
+  6. 중복 탐지 모델과 threshold를 별도로 평가한다. 결과 문서에 선택한 생성 공급자와 모델, 호출 및 페이지 출처 계약, 삭제 규칙, 처리 및 생성 한도와 출시 생성 한도를 고정한다. 모든 후보가 실패하면 요구 범위를 낮추지 않고 계획 충돌로 보고한다.
+- **Tests:** 구간별 품질 gate, 예시 문제 감지와 비복제, 유효 문항당 비용, 정확한 byte boundary, malformed PDF 거절, page locator, provider file 삭제와 duplicate benchmark.
+- **Completion:** 결과가 재실행 가능하고 단일 생성 공급자, 중복 탐지 모델과 사용자 생성 한도의 근거가 수치로 남는다. 선택된 production integration contract가 개인정보 및 50MB 경계와 page provenance를 증명하며 어떤 AI 출력도 validator와 사용자 확인을 우회하지 않는다.
 
 ### U05 — 안전한 PDF 업로드, 분석, 문서 구성
 
@@ -670,9 +678,9 @@ MVP에서는 오답 및 통계 projection과 materialized view를 만들지 않�
   3. AI 자동 분류와 수동 분류를 같은 flat section/page-range 계약으로 저장하고 미해결이거나 비었거나 겹친 범위를 서버에서 차단한다.
   4. 분석 진행 수, 확인 필요, 일부 실패, 만료 시각과 재시도를 read model로 제공하고 단계 전환, 완료, 실패를 비간섭 상태 영역으로 알린다.
   5. Figma의 PDFs→Analysis→OCR Review→Classification Overview→Editable Criteria 화면과 desktop/mobile 상태를 구현한다.
-- **Rate limits:** 계정별 활성 PDF/AI 작업 수와 기간별 업로드와 생성량을 U04에서 확정한 launch 값으로 DB에서 제한한다. 여러 bank를 이용한 우회도 계정 주체로 합산하고 presigned URL 발급 또는 job enqueue 전에 거절한다.
+- **Rate limits:** 계정별 활성 PDF/AI 작업 수와 기간별 업로드 및 생성량을 U04에서 확정한 출시 값으로 API와 DB에서 제한한다. 웹은 공급자 토큰 사용량을 노출하지 않고 한도 소진 시 승인된 오류, 비활성 및 재시도 상태로 다음 사용 가능 시각을 안내한다. 별도 크레딧 원장이나 요금제 UI는 만들지 않는다. 여러 bank를 이용한 우회도 계정 주체로 합산하고 presigned URL 발급 또는 job enqueue 전에 거절한다.
 - **Tests:** presigned URL owner/expiry, signed 길이와 MIME 불일치의 저장 전 거부와 API-stream fallback contract, callback 없는 객체 만료, direct upload tampering, size/MIME/magic mismatch, 병적 압축 또는 과도한 객체 구조의 resource budget 거부, 계정 합산 rate limit와 여러 bank 우회와 시간창 복구, duplicate completion callback, page partition property test, worker retry, cleanup expiration과 cross-user denial.
-- **E2E:** valid text PDF, scan fixture의 OCR review, 50MB 초과 차단, 범위 겹침 및 누락 차단, 화면 이탈 후 상태 복원, 긴 chapter 이름의 scroll contract.
+- **E2E:** valid text PDF, scan fixture의 OCR review, 정확한 50MB 경계와 초과 차단, 범위 겹침 및 누락 차단, 화면 이탈 후 상태 복원, 생성 한도 소진과 시간창 복구, 짧고 긴 재시도 안내의 focus 및 scroll contract.
 - **Completion:** 어떤 PDF도 owner와 파일 검증 없이 분석되지 않고 모든 페이지 partition이 확정되기 전 generation job이 생성되지 않는다.
 
 ### U06 — AI 생성, 중복 검토, 확정, 원본 삭제
@@ -682,13 +690,14 @@ MVP에서는 오답 및 통계 projection과 materialized view를 만들지 않�
 - **Outcome:** AI 초안을 부분 실패에서 복구하고 필요한 문제를 검토, 수정, 삭제, 비교한 뒤 한 번에 확정하며 원본 삭제를 검증한다.
 - **Primary files:** `apps/api/src/modules/generation/generation-service.ts`, `apps/api/src/modules/drafts/*`, `apps/api/src/jobs/generate-questions.ts`, `apps/api/src/jobs/detect-duplicates.ts`, `apps/api/src/jobs/cleanup-material.ts`, `apps/web/features/review/*`, `apps/web/app/(app)/generation-jobs/[jobId]/*`.
 - **Work:**
-  1. 시험 설정과 챕터별 문항 수 snapshot을 저장하고 U04 model 및 schema version으로 chapter 단위 job을 실행한다. 긴 AI 호출은 DB transaction 밖에서 수행하고 현재 fencing token과 일치하는 결과만 짧은 transaction으로 수락한다.
-  2. raw AI 결과를 장기 저장하지 않고 schema, semantic, source validation 결과와 안전한 오류 코드만 남긴다.
-  3. 성공 chapter draft를 유지한 채 실패 chapter만 같은 업무 키로 재시도한다.
-  4. 같은 batch와 현재 bank의 ready revision을 embedding으로 비교해 threshold 이상 top 3만 후보로 저장한다.
-  5. 확인 필요, 중복 가능성, 전체 필터와 편집, 삭제, duplicate compare, 일괄 확정을 구현한다. 검토하지 않은 유효 draft도 일괄 확정할 수 있으며 생성 단계 전환, 완료, 실패를 비간섭 상태 영역으로 알린다.
-  6. 확정 transaction 뒤 원본 접근을 즉시 차단하고 bank home은 사용할 수 있게 한다. R2, OpenAI provider file, 중간 산출물 cleanup은 비동기로 실행하며 `delete_pending/deleted/failed/retrying` 상태와 운영 재처리를 제공한다.
-- **Tests:** invalid AI output quarantine, partial failure retry, duplicate candidate non-blocking, batch finalize idempotency, concurrent finalize, revision/source creation, provider/R2 delete retry와 `HEAD 404` 확인.
+  1. 시험 설정과 챕터별 문항 수 snapshot을 저장하고 U04에서 선택한 production integration contract와 schema version으로 chapter 단위 job을 실행한다. 긴 AI 호출은 DB transaction 밖에서 수행하고 현재 fencing token과 일치하는 결과만 짧은 transaction으로 수락한다.
+  2. PDF의 예시 문제는 출제 형식 참고에만 사용한다. 사용자 설정과 스키마를 우선하고 자동 추가나 가까운 복제를 막으며, 학습 내용이나 예시 해설에서 정답 근거를 찾지 못한 챕터는 실패 처리한다.
+  3. raw AI 결과를 장기 저장하지 않고 schema, semantic, source validation 결과와 안전한 오류 코드만 남긴다.
+  4. 성공 chapter draft를 유지한 채 실패 chapter만 같은 업무 키로 재시도한다.
+  5. 같은 batch와 현재 bank의 ready revision을 U04에서 고정한 중복 탐지 모델로 비교해 threshold 이상 top 3만 후보로 저장한다.
+  6. 확인 필요, 중복 가능성, 전체 필터와 편집, 삭제, duplicate compare, 일괄 확정을 구현한다. 검토하지 않은 유효 draft도 일괄 확정할 수 있으며 생성 단계 전환, 완료, 실패를 비간섭 상태 영역으로 알린다.
+  7. 확정 transaction 뒤 원본 접근을 즉시 차단하고 bank home은 사용할 수 있게 한다. R2, 선택한 AI 공급자의 file과 중간 산출물 cleanup은 비동기로 실행하며 `delete_pending/deleted/failed/retrying` 상태와 운영 재처리를 제공한다.
+- **Tests:** 예시 문제가 섞인 PDF의 스타일 반영, 자동 추가 및 가까운 복제 방지, 근거 부족 거절, invalid AI output quarantine, partial failure retry, duplicate candidate non-blocking, finalize idempotency, revision/source creation과 provider/R2 delete retry.
 - **E2E:** 설정→생성 진행→일부 실패 재시도→필터 검토→중복 비교→최종 확정→bank home, long content와 Dialog scroll.
 - **Completion:** 사용자 확정 전 draft가 학습 후보가 되지 않고 terminal 작업의 content-bearing 객체가 24시간 안에 검증 가능하게 삭제된다.
 
@@ -782,7 +791,7 @@ MVP에서는 오답 및 통계 projection과 materialized view를 만들지 않�
   2. `체험하기`마다 hashed cookie token을 가진 demo session과 독립 bank copy를 만들고 정확한 `expires_at = created_at + 6h`를 저장한다. 검증된 proxy 경계의 client address별 PostgreSQL rate limit을 생성 전에 적용하고 초과 시 `429`와 `Retry-After`를 반환한다.
   3. demo 주체를 user와 동일한 권한 interface로 가장하지 않고 owner 조건의 명시적 user/demo 분기로 제한한다. PDF, AI, 계정 이전 route는 demo에 거부한다.
   4. 계정 삭제는 최근 10분 안의 재인증을 요구하고 예약 즉시 모든 session을 revoke한다. `PENDING_DELETION` 계정은 일반 사용을 차단하고 재인증 후 취소만 허용하며 14일 뒤 race-safe finalization을 실행한다.
-  5. 삭제 시작 transaction에서 계정/bank를 비활성화하고 활성 generation fencing token을 폐기하며 queued job을 취소 대상으로 표시한다. 모든 worker의 외부 객체 등록과 결과 저장은 owner 활성 상태와 현재 fencing token을 같은 transaction에서 확인한다. in-flight 작업이 새 객체를 등록할 수 없게 된 뒤 필요한 외부 식별자를 사용자 FK와 개인 내용을 갖지 않는 cleanup ledger로 옮긴다. 접근 차단→R2/OpenAI/PostHog 삭제와 부재 확인→도메인 행 삭제 순서로 처리하고, ledger는 완료 뒤 식별자를 digest로 대체해 30일 후 자체 삭제한다.
+  5. 삭제 시작 transaction에서 계정/bank를 비활성화하고 활성 generation fencing token을 폐기하며 queued job을 취소 대상으로 표시한다. 모든 worker의 외부 객체 등록과 결과 저장은 owner 활성 상태와 현재 fencing token을 같은 transaction에서 확인한다. in-flight 작업이 새 객체를 등록할 수 없게 된 뒤 필요한 외부 식별자를 사용자 FK와 개인 내용을 갖지 않는 cleanup ledger로 옮긴다. 접근 차단→R2/선택한 AI 공급자/PostHog 삭제와 부재 확인→도메인 행 삭제 순서로 처리하고, ledger는 완료 뒤 식별자를 digest로 대체해 30일 후 자체 삭제한다.
   6. AMUQ가 통제하는 데이터는 위 순서로 제거한다. Resend가 보존하는 최소 메일 본문과 전달 로그는 제공자 정책상 발송 후 최대 30일 뒤 자동 만료되므로 최종 만료 시각을 삭제 상태에 기록하고 사용자 안내에 포함한다.
 - **Tests:** demo isolation, fixed 6h boundary, expired token, 기준본 불변, demo 생성 rate limit과 복구, demo route prohibition, account cancellation/finalization race, 삭제 시작과 in-flight worker 결과 등록 경합, 각 삭제 단계의 중간 장애, user FK 없는 cleanup ledger 재처리/자체 삭제, cross-user object deletion denial, cleanup reconciliation.
 - **E2E:** 두 브라우저 demo 상호 격리, 모든 학습 모드, 새 demo 초기화, 만료 후 접근 차단, 계정 삭제 예약과 취소.
@@ -811,7 +820,7 @@ flowchart LR
   U01 --> U02 --> U03 --> U04 --> U05 --> U06 --> U07 --> U08 --> U09 --> U10 --> U11 --> U12 --> U13
 ```
 
-- 한 Issue씩 구현하므로 위 순서를 기본으로 한다. U04는 사용자-facing 생성 흐름을 본격 구현하기 전에 한도, 모델, 중복 기준을 잠그는 필수 게이트다.
+- 한 Issue씩 구현하므로 위 순서를 기본으로 한다. U04는 사용자-facing 생성 흐름을 본격 구현하기 전에 생성 공급자와 모델, 한도, 중복 기준을 잠그는 필수 게이트다.
 - U09와 U10은 기술적으로 U08 이후 독립 가능하지만 활성 Issue를 하나로 유지하기 위해 모의고사 다음 릴레이 순으로 진행한다.
 - U12의 계정 삭제 schema와 API 골격은 U02에서 준비할 수 있지만 모든 하위 자원의 최종 삭제 검증은 U06-U11 이후에 완료한다.
 - U13의 SDK 설정을 앞당겨 application code에 산재시키지 않는다. 각 unit은 structured logs와 safe error code만 준비하고 최종 관측 경계에서 한 번 연결한다.
@@ -880,7 +889,7 @@ flowchart LR
 
 | Risk / dependency                | Impact                            | Mitigation and evidence                                                                                                                              |
 | -------------------------------- | --------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------- |
-| GPT의 언어와 scan 품질 편차      | 잘못된 문제 및 누락               | U04 고정 corpus 평가, source locator 검증, draft 격리, 사용자 확정. 모델과 limit은 evidence 전에는 고정하지 않는다.                                  |
+| AI 공급자별 언어와 scan 품질 편차 | 잘못된 문제 및 누락               | U04 고정 corpus 평가, source locator 검증, draft 격리, 사용자 확정. 공급자, 모델과 limit은 evidence 전에는 고정하지 않는다.                            |
 | 50MB PDF의 처리시간 및 비용      | timeout, 과금, 나쁜 UX            | page chunking, chapter attempt, concurrency cap, 비용과 latency 기록과 보수적 page/question limit.                                                   |
 | 늦은 AI 응답과 worker redelivery | draft 중복 및 최신 결과 덮어쓰기  | attempt fencing token, unique constraint, current attempt conditional write와 crash/retry integration test.                                          |
 | R2와 provider 파일 잔존          | 개인정보 및 신뢰 위반             | 즉시 접근 차단, delete→absence 확인, cleanup task 재시도, lifecycle 안전망과 terminal alert.                                                         |
@@ -897,12 +906,13 @@ flowchart LR
 
 사용자 결정을 기다리는 제품 질문은 없다. 다음 값은 U04에서 측정하고 같은 Issue에서 Planning Resolution과 환경 설정에 반영한다.
 
-- 선택한 GPT model ID와 prompt/schema version
+- 선택한 generation provider, model ID와 production integration contract
 - 50MB 안에서 지원할 최대 page 수
 - 한 job/chapter의 최대 생성 문항 수와 동시 실행 수
 - PDF parser의 wall-clock/peak memory/page/객체 budget과 공개 비용성 경로의 launch rate limit
 - duplicate embedding model/threshold와 top-3 benchmark 결과
-- text/scan, 한국어/영어별 예상 latency와 비용 범위
+- 한국어와 영어의 text/scan 구간별 품질, 예상 latency와 유효 문항당 비용 범위
+- 공급자가 통제하는 잔존 데이터의 보존 기간과 사용자 승인 결과
 
 측정 결과가 현재 가정을 무효화하면 범위를 임의로 줄이지 않는다. 계획 충돌로 보고하고 사용자 승인을 받는다.
 
@@ -978,7 +988,7 @@ pnpm build
 
 - 의도적 safe browser/API/worker 오류가 test Sentry release와 올바른 source map에 연결되고 금지 데이터가 없는지 확인한다.
 - 두 핵심 PostHog funnel의 이벤트 발생 위치, 순서, allowlist payload를 확인하고 모든 route에서 autocapture, Replay payload가 생성되지 않음을 확인한다. 전달 수치는 best-effort이며 성공 지표는 PostgreSQL 결과와 대조한다.
-- R2 삭제 후 object 부재, OpenAI provider file 삭제, demo 410과 account access block을 production-like preview에서 drill한다.
+- R2 삭제 후 object 부재, 선택한 AI 공급자의 file 삭제, demo 410과 account access block을 production-like preview에서 drill한다.
 - cleanup terminal failure, AI 연속 실패와 email bounce가 올바른 운영 alert 또는 dashboard 상태로 나타나는지 확인한다.
 
 ## Definition of Done
