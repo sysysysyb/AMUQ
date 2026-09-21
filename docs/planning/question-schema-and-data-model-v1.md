@@ -2,7 +2,7 @@
 
 작성일: 2026-09-02
 상태: 사용자 승인 완료 (2026-09-03 인수인계 확인)
-대상: 개인 수험생용 비공개 문제은행·학습 플랫폼 MVP
+대상: 개인 수험생용 비공개 문제은행 및 학습 플랫폼 MVP
 
 ## 1. 결정 요약
 
@@ -17,14 +17,14 @@ MVP의 범용성은 “모든 시험 유형 지원”이 아니라 다음 범위
 - 북마크는 현재 문항을, 학습 이력은 당시 문항 revision을 참조
 - 틀린 문제는 “가장 최근 제출 결과가 오답 또는 미응답인 문항”으로 정의
 
-복수정답, O/X 전용 유형, 단답형, 서술형, 이미지·수식 블록, 공개 공유는 v1에서 제외한다. 필요할 때 discriminator를 추가해 schema version을 올린다.
+복수정답, O/X 전용 유형, 단답형, 서술형, 이미지, 수식 블록, 공개 공유는 v1에서 제외한다. 필요할 때 discriminator를 추가해 schema version을 올린다.
 
 ## 2. 왜 기존 Mammo 스키마를 그대로 확장하지 않는가
 
 현재 Mammo 스키마는 다음 장점이 있다.
 
 - JSON Schema Draft 2020-12 사용
-- 문항·선택지·정답·해설·출처를 명시적으로 분리
+- 문항, 선택지, 정답, 해설, 출처를 명시적으로 분리
 - 선택지별 rationale과 출처 페이지 보존
 - 빌드 단계에서 파일 수, 문항 수, ID 중복 등을 검증
 
@@ -35,7 +35,7 @@ MVP의 범용성은 “모든 시험 유형 지원”이 아니라 다음 범위
 - `breast-specialist-question-bank`라는 schema name
 - 모든 문항의 `reviewStatus`가 `ai-draft`
 - 입력 데이터가 `sourceVerified: true` 등의 검증 완료 상태를 직접 주장
-- 문항 내용과 생성 batch·검증 결과·출처 정보가 한 문서에 혼합
+- 문항 내용과 생성 batch, 검증 결과, 출처 정보가 한 문서에 혼합
 
 새 구조에서는 문항 콘텐츠, 검토 상태, import 실행 결과, 서버 검증 결과를 분리한다.
 
@@ -72,7 +72,7 @@ PostgreSQL의 `CHECK`는 다른 행을 조회하는 용도로 설계되지 않�
 |---|---|---|
 | `AuthorQuestionDTO` | 정답, 해설, rationale, 출처, 검토 상태 | 다른 사용자의 소유 데이터 |
 | `TestQuestionDTO` | attempt ID, prompt, 선택지, 표시 순서 | 정답, 해설, rationale, 출처 검증 정보 |
-| `ReviewQuestionDTO` | 선택 답, 정답, 결과, 해설, rationale, 출처 | 작성·import 내부 정보 |
+| `ReviewQuestionDTO` | 선택 답, 정답, 결과, 해설, rationale, 출처 | 작성 및 import 내부 정보 |
 
 풀이 시작 API가 정답까지 내려주지 않도록 분리한다. 학습 앱이 고부담 시험 시스템은 아니더라도, 네트워크 응답만 열어 정답을 확인할 수 있는 구조는 모의시험의 신뢰성을 떨어뜨린다.
 
@@ -163,7 +163,7 @@ PostgreSQL의 `CHECK`는 다른 행을 조회하는 용도로 설계되지 않�
 
 JSON Schema 통과 후 서버에서 다음을 추가 검사한다.
 
-1. bank·section·source·question의 `externalId`가 각 범위에서 중복되지 않는다.
+1. bank, section, source, question의 `externalId`가 각 범위에서 중복되지 않는다.
 2. section의 `position`이 중복되지 않는다.
 3. `sectionExternalId`가 실제 section을 가리킨다.
 4. option key가 중복되지 않고 `1`부터 연속된다.
@@ -222,7 +222,7 @@ CHECK (
 별도 `exams` 테이블은 다음 요구가 생길 때 추가한다.
 
 - 하나의 시험 아래 여러 bank를 묶어 통합 학습
-- 시험별 공통 일정·합격 기준·과목 체계
+- 시험별 공통 일정, 합격 기준, 과목 체계
 - 여러 사용자가 같은 시험 catalog를 공유
 
 현재는 이 요구가 없으므로 추가하지 않는다.
@@ -236,7 +236,7 @@ CHECK (
 | `id uuid PK` | section ID |
 | `bank_id uuid FK question_banks ON DELETE CASCADE` | 소속 bank |
 | `title`, `description` | 표시 정보 |
-| `position integer` | 릴레이·목록 순서 |
+| `position integer` | 릴레이 및 목록 순서 |
 
 제약:
 
@@ -292,7 +292,7 @@ CHECK (
 - `UNIQUE (question_id, revision_no)`
 - `CHECK (revision_no >= 1)`
 - `CHECK (correct_option_position BETWEEN 1 AND 8)`
-- tag는 trim·case normalization 후 중복 제거
+- tag는 trim, case normalization 후 중복 제거
 - revision은 UPDATE하지 않고 수정 시 새 행을 INSERT
 - 현재 revision은 가장 큰 `revision_no`
 
@@ -322,7 +322,7 @@ PK 또는 unique key는 `(revision_id, position)`이다. `question_revisions(id,
 | `title`, `edition` | 출처 표시 정보 |
 | `original_file_name` | 업로드 당시 파일명 |
 | `storage_key` | private object storage key, URL 아님 |
-| `sha256`, `page_count` | 중복·페이지 검증 정보 |
+| `sha256`, `page_count` | 중복, 페이지 검증 정보 |
 | `created_at` | 생성 시각 |
 
 - `UNIQUE (bank_id, source_key)`
@@ -339,9 +339,9 @@ PK 또는 unique key는 `(revision_id, position)`이다. `question_revisions(id,
 | `pdf_pages integer[]` | PDF 기준 1-based 페이지 |
 | `basis_summary` | 문제 근거 요약 |
 
-페이지 배열은 조회 필터가 아니라 표시·검증용 locator이므로 별도 page row로 과도하게 정규화하지 않는다.
+페이지 배열은 조회 필터가 아니라 표시 및 검증용 locator이므로 별도 page row로 과도하게 정규화하지 않는다.
 
-## 6. 학습·이력 모델
+## 6. 학습 및 이력 모델
 
 ```mermaid
 erDiagram
@@ -365,11 +365,11 @@ erDiagram
 | `requested_question_count` | 사용자 요청 수 |
 | `actual_question_count` | 실제 수 |
 | `time_limit_seconds NULL` | 모의시험 제한 시간 |
-| `selection_config jsonb` | section·shuffle 등 시작 설정 snapshot |
+| `selection_config jsonb` | section, shuffle 등 시작 설정 snapshot |
 | `idempotency_key` | 중복 세션 생성 방지 |
 | `started_at`, `expires_at`, `submitted_at` | 시간 |
 | `auto_submitted` | 시간 만료 자동 제출 여부 |
-| 결과 count·score | 제출 시 저장되는 summary |
+| 결과 count, score | 제출 시 저장되는 summary |
 
 mode:
 
@@ -481,11 +481,11 @@ AI 범위는 다음 논의에서 확정하되, core model은 아래 연결점만
 | `schema_version` | 결과 package version |
 | `input_sha256` | 중복 입력 추적 |
 | `idempotency_key` | 중복 요청 방지 |
-| count fields | 생성·유효·거절·승인 문항 수 |
+| count fields | 생성, 유효, 거절, 승인 문항 수 |
 | `error_code`, `error_summary` | 안전한 오류 정보 |
 | timestamps | 처리 시간 |
 
-AI 원문 응답과 validation error를 무기한 핵심 테이블에 쌓지 않는다. 보존 기간과 개인정보·저작권 정책은 다음 단계에서 확정한다.
+AI 원문 응답과 validation error를 무기한 핵심 테이블에 쌓지 않는다. 보존 기간과 개인정보 및 저작권 정책은 다음 단계에서 확정한다.
 
 AI 결과는 다음 순서로만 ready가 된다.
 
@@ -528,17 +528,17 @@ Schema-valid는 내용의 사실성을 보장하지 않는다. 따라서 AI가 �
 2. 모든 기존 question ID가 새 question에 1:1 매핑
 3. 정답과 선택지 rationale 손실 없음
 4. source와 printed/pdf page locator 손실 없음
-5. 기존 Build Gate의 파일·count·중복 검증 유지
+5. 기존 Build Gate의 파일, count, 중복 검증 유지
 6. 새 package schema와 semantic validator 모두 통과
-7. 이전 전후 대표 mini-test·mock-exam 결과 동일
+7. 이전 전후 대표 mini-test와 mock-exam 결과 동일
 
 ## 9. 삭제와 보존 정책
 
-- 개별 question: archive, 과거 revision·attempt 유지
+- 개별 question: archive하고 과거 revision과 attempt 유지
 - 개별 revision: 사용자에게 직접 삭제 기능을 제공하지 않음
 - bank 전체 삭제: 명시적 확인 후 bank 콘텐츠, 학습 이력, bookmark, import metadata를 transaction으로 cascade 삭제
 - 사용자 계정 삭제: 인증 정책 단계에서 유예 기간과 완전 삭제 범위 확정
-- 시스템 Mammo bank: 일반 사용자 API에서 수정·삭제 불가
+- 시스템 Mammo bank: 일반 사용자 API에서 수정 및 삭제 불가
 
 soft delete를 모든 테이블에 일괄 적용하지 않는다. purge 작업 없이 `deleted_at`만 남기면 개인정보가 사실상 계속 보존되기 때문이다.
 
@@ -560,18 +560,18 @@ MVP 시작 인덱스:
 
 ## 11. 테스트해야 할 핵심 무결성
 
-### Schema·import
+### Schema와 import
 
 - 중복 question/section/source ID 거절
 - 존재하지 않는 section/source 참조 거절
-- option key 중복·불연속 거절
+- option key 중복 및 불연속 거절
 - 존재하지 않는 correct option 거절
 - source page 범위 초과 거절
-- 같은 checksum·idempotency key 재요청의 중복 생성 방지
+- 같은 checksum, idempotency key 재요청의 중복 생성 방지
 
 ### Authorization
 
-- 다른 사용자의 bank·source·question·session·bookmark 접근 거절
+- 다른 사용자의 bank, source, question, session, bookmark 접근 거절
 - system demo 읽기만 허용
 - 소유권을 바꾼 ID 조합으로 nested resource 접근 거절
 
@@ -601,7 +601,7 @@ MVP 시작 인덱스:
 6. 과거 attempt는 revision, bookmark는 stable question을 참조한다.
 7. 현재 오답은 가장 최근 제출 결과 기준으로 계산한다.
 8. DB 원본에서 대시보드를 계산하고 별도 집계 테이블은 나중에 추가한다.
-9. AI import는 구조·의미 검증 후에도 사용자 승인 전까지 draft다.
+9. AI import는 구조 및 의미 검증 후에도 사용자 승인 전까지 draft다.
 10. Mammo의 806문항은 검증 완료된 system seed로 이전한다.
 
 ## 참고 자료
