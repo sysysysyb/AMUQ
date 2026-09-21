@@ -1,0 +1,8 @@
+.compound-engineering/
+.impeccable/
+.github/ISSUE_TEMPLATE/
+.github/pull_request_template.md
+docs/
+tools/
+AGENTS.md
+status.md
