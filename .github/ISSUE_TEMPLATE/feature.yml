@@ -2,7 +2,7 @@ name: Feature
 description: Deliver one vertical, user-visible unit from the approved plan.
 title: "[Feature] "
 labels:
-  - "type:feature"
+  - "feature"
 body:
   - type: input
     id: requirement_ids
