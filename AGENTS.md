@@ -31,6 +31,7 @@ Before using a skill, plugin, MCP server, or command required by this workflow:
 - If unavailable, stop before producing the related artifact or implementation, report what is missing, and ask whether to install or configure it.
 - Do not imitate, approximate, replace, or skip it without explicit user approval.
 - Verify availability after installation or configuration before resuming.
+- Treat temporary directories declared writable by the active environment as in-sandbox locations for skill run artifacts. Use the platform file-write tool or a non-escalated command there; do not request elevated permissions solely because the path is outside the repository. If an in-sandbox write actually fails, report that error before requesting the narrowest necessary escalation.
 
 A similarly named or successor capability is not automatically an approved substitute.
 
