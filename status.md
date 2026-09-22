@@ -1,11 +1,11 @@
 # Workflow Status
 
-> Updated: 2026-09-22 13:19 KST
+> Updated: 2026-09-22 14:31 KST
 
 ## Current state
 
 - Status: review
-- Stage: Stage 6 - Issue #7 task 7-2 complete; task 7-3 awaiting approval
+- Stage: Stage 6 - Issue #7 task 7-3 HTTP foundation
 
 ## Active work
 
@@ -17,18 +17,18 @@
 
 ## Current checkpoint
 
-- Last completed: Restored the `ce-code-review` artifact workflow and fixed pnpm 11 project-setting discovery for the completed 7-2 workspace.
-- Latest verification: Full `ce-code-review`, frozen offline install, pnpm config and unsupported-engine probe, format, lint, Vitest, integration runner, Playwright runner, and empty-source discovery — passed.
+- Last completed: Implemented the 7-3 HTTP foundation and resolved all validated code-review findings.
+- Latest verification: Frozen offline install, format, lint, typecheck, Vitest (8), integration (4), Playwright E2E (2), build, and diff check — passed.
 
 ## Review focus
 
-- `AGENTS.md::Required Capabilities` — writable skill artifacts stay inside the sandbox without unnecessary escalation
-- `pnpm-workspace.yaml::engineStrict/saveExact` — pnpm 11 reads the Node and exact-version policy from its native workspace config
-- `package.json::scripts` — temporary zero-test allowances must end when 7-3 adds executable behavior
+- `apps/web/app/api/[...path]/route.ts::proxy` — same-origin routing, request-ID continuity, timeout, and header boundaries
+- `apps/api/src/http/server.ts::buildServer` — health/readiness schemas, OpenAPI generation, and development-only Swagger UI
+- `tests/e2e/http-foundation.spec.ts` — real Web-to-API health path and production Swagger exclusion
 
 ## Remaining risk
 
-- The temporary no-test allowances must be removed and real build/typecheck scripts added when 7-3 introduces the first executable sources and tests.
+- `/ready` is process readiness only until database checks are added in 7-4.
 
 ## Blockers
 
@@ -37,4 +37,4 @@
 ## Next action
 
 - Owner: User
-- Action: Review task 7-2 and approve starting task 7-3, the HTTP foundation.
+- Action: Review the committed 7-3 HTTP foundation and approve or request changes before 7-4.
