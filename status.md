@@ -1,6 +1,6 @@
 # Workflow Status
 
-> Updated: 2026-09-21 23:41 KST
+> Updated: 2026-09-22 13:19 KST
 
 ## Current state
 
@@ -17,14 +17,14 @@
 
 ## Current checkpoint
 
-- Last completed: Configured the minimal Node 22 pnpm workspace for web, API, and shared contracts with strict TypeScript, formatting, lint, and test runners.
-- Latest verification: Frozen install, peer check, format, lint, Vitest, integration runner, Playwright runner, and TSX discovery — passed; empty-source typecheck failed explicitly as intended.
+- Last completed: Restored the `ce-code-review` artifact workflow and fixed pnpm 11 project-setting discovery for the completed 7-2 workspace.
+- Latest verification: Full `ce-code-review`, frozen offline install, pnpm config and unsupported-engine probe, format, lint, Vitest, integration runner, Playwright runner, and empty-source discovery — passed.
 
 ## Review focus
 
-- `package.json::engines/scripts/devDependencies` — Node and pnpm contract plus the 7-2 validation surface
-- `tsconfig.base.json` and workspace `tsconfig.json` files — strict defaults and future-source discovery
-- `vitest.config.ts` and `playwright.config.ts` — unit, integration, and E2E discovery boundaries
+- `AGENTS.md::Required Capabilities` — writable skill artifacts stay inside the sandbox without unnecessary escalation
+- `pnpm-workspace.yaml::engineStrict/saveExact` — pnpm 11 reads the Node and exact-version policy from its native workspace config
+- `package.json::scripts` — temporary zero-test allowances must end when 7-3 adds executable behavior
 
 ## Remaining risk
 
