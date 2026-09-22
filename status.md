@@ -1,11 +1,11 @@
 # Workflow Status
 
-> Updated: 2026-09-22 14:31 KST
+> Updated: 2026-09-23 01:39 KST
 
 ## Current state
 
 - Status: review
-- Stage: Stage 6 - Issue #7 task 7-3 HTTP foundation
+- Stage: Stage 6 - Issue #7 task 7-4 database deployment foundation
 
 ## Active work
 
@@ -17,18 +17,18 @@
 
 ## Current checkpoint
 
-- Last completed: Implemented the 7-3 HTTP foundation and resolved all validated code-review findings.
-- Latest verification: Frozen offline install, format, lint, typecheck, Vitest (8), integration (4), Playwright E2E (2), build, and diff check — passed.
+- Last completed: Implemented the 7-4 database deployment foundation and resolved all validated code-review findings.
+- Latest verification: Frozen install, Drizzle generation check, format, lint, typecheck, Vitest (27 passed, 4 DB-skipped), integration (8 passed, 4 DB-skipped), build, and diff check — passed.
 
 ## Review focus
 
-- `apps/web/app/api/[...path]/route.ts::proxy` — same-origin routing, request-ID continuity, timeout, and header boundaries
-- `apps/api/src/http/server.ts::buildServer` — health/readiness schemas, OpenAPI generation, and development-only Swagger UI
-- `tests/e2e/http-foundation.spec.ts` — real Web-to-API health path and production Swagger exclusion
+- `apps/api/src/db/migrations.ts::migrateDatabase` — advisory-lock ordering, bounded waits, and pg-boss BAM completion
+- `apps/api/src/db/database.ts::assertDatabaseSchema` — exact Drizzle hash and pg-boss schema validation
+- `.github/workflows/database.yml::integration` — PostgreSQL 17 migration, full validation, production readiness, and shutdown smoke
 
 ## Remaining risk
 
-- `/ready` is process readiness only until database checks are added in 7-4.
+- PostgreSQL-backed migration and production smoke checks are configured for CI but could not run locally without `TEST_DATABASE_URL`.
 
 ## Blockers
 
@@ -37,4 +37,4 @@
 ## Next action
 
 - Owner: User
-- Action: Review the committed 7-3 HTTP foundation and approve or request changes before 7-4.
+- Action: Review the committed 7-4 database deployment foundation and approve or request changes before 7-5.
