@@ -1,5 +1,6 @@
 {
   "compilerOptions": {
+    "allowImportingTsExtensions": true,
     "allowJs": false,
     "esModuleInterop": true,
     "exactOptionalPropertyTypes": true,
@@ -7,6 +8,7 @@
     "isolatedModules": true,
     "noUncheckedIndexedAccess": true,
     "resolveJsonModule": true,
+    "rewriteRelativeImportExtensions": true,
     "skipLibCheck": true,
     "strict": true,
     "target": "ES2022"
