@@ -5,6 +5,9 @@
   "type": "module",
   "scripts": {
     "build": "tsc -p tsconfig.build.json",
+    "db:check": "node --experimental-strip-types src/db/check.ts",
+    "db:generate": "drizzle-kit generate --config drizzle.config.ts",
+    "db:migrate": "node --experimental-strip-types src/db/migrate.ts",
     "dev": "node --watch --experimental-strip-types src/http/index.ts --development",
     "start": "node dist/http/index.js",
     "typecheck": "tsc --noEmit"
@@ -12,6 +15,13 @@
   "dependencies": {
     "@fastify/swagger": "9.8.1",
     "@fastify/swagger-ui": "5.2.6",
-    "fastify": "5.12.5"
+    "drizzle-orm": "0.45.3",
+    "fastify": "5.12.5",
+    "pg": "8.23.0",
+    "pg-boss": "12.33.3"
+  },
+  "devDependencies": {
+    "@types/pg": "8.23.1",
+    "drizzle-kit": "0.31.11"
   }
 }

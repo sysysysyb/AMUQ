@@ -8,6 +8,9 @@
   },
   "scripts": {
     "build": "pnpm -r --if-present build",
+    "db:check": "pnpm --filter @amuq/api db:check",
+    "db:generate": "pnpm --filter @amuq/api db:generate",
+    "db:migrate": "pnpm --filter @amuq/api db:migrate",
     "dev": "pnpm --parallel --filter @amuq/api --filter @amuq/web dev",
     "format": "prettier --write . --ignore-unknown",
     "format:check": "prettier --check . --ignore-unknown",
