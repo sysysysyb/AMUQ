@@ -49,6 +49,7 @@ describe("database configuration", () => {
       {
         connectionString: "postgresql://localhost/amuq",
         connectionTimeoutMillis: 5_000,
+        max: 1,
         options: "-c statement_timeout=5000 -c lock_timeout=5000",
         query_timeout: 5_000,
       },

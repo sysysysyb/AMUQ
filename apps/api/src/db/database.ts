@@ -46,6 +46,11 @@ export async function assertDatabaseSchema(
   connectionString: string,
   client: QueryClient,
 ): Promise<void> {
+  await assertDrizzleSchema(client);
+  await assertPgBossSchema(connectionString);
+}
+
+export async function assertDrizzleSchema(client: QueryClient): Promise<void> {
   const target = readMigrationFiles(migrationConfig).at(-1);
   if (!target) {
     throw new Error("No Drizzle migration target exists");
@@ -61,13 +66,13 @@ export async function assertDatabaseSchema(
   ) {
     throw new Error("Database schema is not at the target Drizzle version");
   }
-
-  await checkPgBossSchema(connectionString);
 }
 
-async function checkPgBossSchema(connectionString: string): Promise<void> {
+export async function assertPgBossSchema(
+  connectionString: string,
+): Promise<void> {
   const boss = new PgBoss({
-    ...pgBossDatabaseOptions(connectionString, databaseProbeTimeoutMs),
+    ...pgBossDatabaseOptions(connectionString),
     migrate: false,
     schedule: false,
     supervise: false,
@@ -83,11 +88,12 @@ async function checkPgBossSchema(connectionString: string): Promise<void> {
 
 export function pgBossDatabaseOptions(
   connectionString: string,
-  queryTimeout: number,
+  queryTimeout = databaseProbeTimeoutMs,
 ) {
   return {
     connectionString,
     connectionTimeoutMillis: databaseProbeTimeoutMs,
+    max: 1,
     options: `-c statement_timeout=${queryTimeout} -c lock_timeout=${queryTimeout}`,
     query_timeout: queryTimeout,
   } satisfies ConstructorOptions & Pick<PoolConfig, "query_timeout">;

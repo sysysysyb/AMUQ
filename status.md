@@ -1,11 +1,11 @@
 # Workflow Status
 
-> Updated: 2026-09-23 01:39 KST
+> Updated: 2026-09-24 00:54 KST
 
 ## Current state
 
 - Status: review
-- Stage: Stage 6 - Issue #7 task 7-4 database deployment foundation
+- Stage: Stage 6 - Issue #7 task 7-5 worker runtime foundation
 
 ## Active work
 
@@ -17,18 +17,18 @@
 
 ## Current checkpoint
 
-- Last completed: Implemented the 7-4 database deployment foundation and resolved all validated code-review findings.
-- Latest verification: Frozen install, Drizzle generation check, format, lint, typecheck, Vitest (27 passed, 4 DB-skipped), integration (8 passed, 4 DB-skipped), build, and diff check — passed.
+- Last completed: Implemented the 7-5 worker runtime foundation and resolved all three validated code-review findings.
+- Latest verification: Frozen install, format, lint, typecheck, Vitest (34 passed, 7 DB-skipped), integration (8 passed, 7 DB-skipped), build, and diff check — passed.
 
 ## Review focus
 
-- `apps/api/src/db/migrations.ts::migrateDatabase` — advisory-lock ordering, bounded waits, and pg-boss BAM completion
-- `apps/api/src/db/database.ts::assertDatabaseSchema` — exact Drizzle hash and pg-boss schema validation
-- `.github/workflows/database.yml::integration` — PostgreSQL 17 migration, full validation, production readiness, and shutdown smoke
+- `apps/api/src/worker.ts::startWorker` — sequential schema probes, startup signal handling, and graceful shutdown
+- `apps/api/test/integration/database.test.ts` — one-connection worker startup and queue polling load coverage
+- `.github/workflows/database.yml::integration` — readiness-gated production worker shutdown smoke
 
 ## Remaining risk
 
-- PostgreSQL-backed migration and production smoke checks are configured for CI but could not run locally without `TEST_DATABASE_URL`.
+- PostgreSQL-backed worker connection-limit/load tests and production smoke are configured for CI but could not run locally without `TEST_DATABASE_URL`.
 
 ## Blockers
 
@@ -37,4 +37,4 @@
 ## Next action
 
 - Owner: User
-- Action: Review the committed 7-4 database deployment foundation and approve or request changes before 7-5.
+- Action: Review the committed 7-5 worker runtime foundation and approve or request changes before 7-6.
