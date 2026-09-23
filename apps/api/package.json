@@ -9,7 +9,9 @@
     "db:generate": "drizzle-kit generate --config drizzle.config.ts",
     "db:migrate": "node --experimental-strip-types src/db/migrate.ts",
     "dev": "node --watch --experimental-strip-types src/http/index.ts --development",
+    "dev:worker": "node --watch --experimental-strip-types src/worker.ts",
     "start": "node dist/http/index.js",
+    "start:worker": "node dist/worker.js",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {

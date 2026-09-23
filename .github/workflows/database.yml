@@ -48,3 +48,19 @@ jobs:
           kill -TERM "$api_pid"
           wait "$api_pid"
           trap - EXIT
+      - name: Smoke test production worker
+        run: |
+          set -euo pipefail
+          worker_log="${RUNNER_TEMP}/amuq-worker.log"
+          node apps/api/dist/worker.js >"$worker_log" 2>&1 &
+          worker_pid=$!
+          trap 'kill -TERM "$worker_pid" 2>/dev/null || true' EXIT
+          for _ in {1..30}; do
+            grep -Fxq 'AMUQ_WORKER_READY' "$worker_log" && break
+            kill -0 "$worker_pid"
+            sleep 1
+          done
+          grep -Fxq 'AMUQ_WORKER_READY' "$worker_log"
+          kill -TERM "$worker_pid"
+          wait "$worker_pid"
+          trap - EXIT
