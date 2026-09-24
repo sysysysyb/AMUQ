@@ -1,4 +1,7 @@
-import { applicationEnvironment } from "../config/environment.ts";
+import {
+  applicationEnvironment,
+  proxySharedSecret,
+} from "../config/environment.ts";
 import {
   assertDatabaseSchema,
   createDatabasePool,
@@ -7,6 +10,7 @@ import {
 import { buildServer, registerShutdownHandlers } from "./server.ts";
 
 const environment = applicationEnvironment();
+const proxySecret = proxySharedSecret();
 const connectionString = databaseUrl();
 const pool = createDatabasePool(connectionString);
 
@@ -23,6 +27,7 @@ const server = await buildServer({
   readiness: async () => {
     await pool.query("SELECT 1");
   },
+  ...(proxySecret ? { proxySecret } : {}),
 });
 registerShutdownHandlers(server);
 
