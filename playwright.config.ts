@@ -8,7 +8,8 @@ export default defineConfig({
   webServer: [
     {
       command:
-        "corepack pnpm --filter @amuq/api exec node --experimental-strip-types src/http/index.ts",
+        "node --env-file-if-exists=.env --experimental-strip-types apps/api/src/http/index.ts",
+      env: { AMUQ_ENV: "test" },
       port: 3001,
       reuseExistingServer: false,
     },

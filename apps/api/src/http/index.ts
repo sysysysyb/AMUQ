@@ -1,3 +1,4 @@
+import { applicationEnvironment } from "../config/environment.ts";
 import {
   assertDatabaseSchema,
   createDatabasePool,
@@ -5,6 +6,7 @@ import {
 } from "../db/database.ts";
 import { buildServer, registerShutdownHandlers } from "./server.ts";
 
+const environment = applicationEnvironment();
 const connectionString = databaseUrl();
 const pool = createDatabasePool(connectionString);
 
@@ -16,9 +18,7 @@ try {
 }
 
 const server = await buildServer({
-  environment: process.argv.includes("--development")
-    ? "development"
-    : "production",
+  environment,
   onClose: async () => pool.end(),
   readiness: async () => {
     await pool.query("SELECT 1");

@@ -1,0 +1,53 @@
+import { readFileSync } from "node:fs";
+
+import { describe, expect, it } from "vitest";
+
+import { applicationEnvironment } from "./environment.js";
+
+describe("application environment", () => {
+  it.each(["development", "test", "production"] as const)(
+    "accepts the %s environment",
+    (value) => {
+      expect(applicationEnvironment({ AMUQ_ENV: value })).toBe(value);
+    },
+  );
+
+  it.each([undefined, "", "preview", "Production"])(
+    "rejects an invalid environment value: %s",
+    (value) => {
+      expect(() => applicationEnvironment({ AMUQ_ENV: value })).toThrow(
+        "AMUQ_ENV must be development, test, or production",
+      );
+    },
+  );
+
+  it("keeps example environment values empty", () => {
+    const example = readFileSync(
+      new URL("../../../../.env.example", import.meta.url),
+      "utf8",
+    );
+    const assignments = example
+      .split(/\r?\n/)
+      .filter((line) => line && !line.startsWith("#"));
+
+    expect(assignments).toEqual([
+      "AMUQ_ENV=",
+      "HOST=",
+      "PORT=",
+      "API_ORIGIN=",
+      "DATABASE_URL=",
+      "TEST_DATABASE_URL=",
+      "R2_ACCOUNT_ID=",
+      "R2_BUCKET_NAME=",
+      "R2_ACCESS_KEY_ID=",
+      "R2_SECRET_ACCESS_KEY=",
+      "NEXT_PUBLIC_POSTHOG_KEY=",
+      "NEXT_PUBLIC_POSTHOG_HOST=",
+      "SENTRY_DSN=",
+      "NEXT_PUBLIC_SENTRY_DSN=",
+      "SENTRY_AUTH_TOKEN=",
+      "SENTRY_ORG=",
+      "SENTRY_PROJECT=",
+    ]);
+  });
+});

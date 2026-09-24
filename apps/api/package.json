@@ -5,13 +5,13 @@
   "type": "module",
   "scripts": {
     "build": "tsc -p tsconfig.build.json",
-    "db:check": "node --experimental-strip-types src/db/check.ts",
+    "db:check": "node --env-file-if-exists=../../.env --experimental-strip-types src/db/check.ts",
     "db:generate": "drizzle-kit generate --config drizzle.config.ts",
-    "db:migrate": "node --experimental-strip-types src/db/migrate.ts",
-    "dev": "node --watch --experimental-strip-types src/http/index.ts --development",
-    "dev:worker": "node --watch --experimental-strip-types src/worker.ts",
-    "start": "node dist/http/index.js",
-    "start:worker": "node dist/worker.js",
+    "db:migrate": "node --env-file-if-exists=../../.env --experimental-strip-types src/db/migrate.ts",
+    "dev": "node --env-file-if-exists=../../.env --watch --experimental-strip-types src/http/index.ts",
+    "dev:worker": "node --env-file-if-exists=../../.env --watch --experimental-strip-types src/worker.ts",
+    "start": "node --env-file-if-exists=../../.env dist/http/index.js",
+    "start:worker": "node --env-file-if-exists=../../.env dist/worker.js",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {

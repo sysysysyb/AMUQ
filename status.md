@@ -1,11 +1,11 @@
 # Workflow Status
 
-> Updated: 2026-09-24 00:54 KST
+> Updated: 2026-09-25 00:27 KST
 
 ## Current state
 
 - Status: review
-- Stage: Stage 6 - Issue #7 task 7-5 worker runtime foundation
+- Stage: Stage 6 - Issue #7 task 7-6 environment separation
 
 ## Active work
 
@@ -17,18 +17,18 @@
 
 ## Current checkpoint
 
-- Last completed: Implemented the 7-5 worker runtime foundation and resolved all three validated code-review findings.
-- Latest verification: Frozen install, format, lint, typecheck, Vitest (34 passed, 7 DB-skipped), integration (8 passed, 7 DB-skipped), build, and diff check — passed.
+- Last completed: Implemented 7-6 environment separation and resolved the Playwright environment-loading review finding.
+- Latest verification: Format, lint, typecheck, Vitest (42 passed, 7 DB-skipped), integration (8 passed, 7 DB-skipped), build, and diff check - passed.
 
 ## Review focus
 
-- `apps/api/src/worker.ts::startWorker` — sequential schema probes, startup signal handling, and graceful shutdown
-- `apps/api/test/integration/database.test.ts` — one-connection worker startup and queue polling load coverage
-- `.github/workflows/database.yml::integration` — readiness-gated production worker shutdown smoke
+- `apps/api/src/config/environment.ts::applicationEnvironment` - strict development/test/production validation
+- `apps/api/package.json::scripts` - shared root `.env` loading for API, worker, and database commands
+- `playwright.config.ts::webServer` - isolated test environment and root `.env` loading
 
 ## Remaining risk
 
-- PostgreSQL-backed worker connection-limit/load tests and production smoke are configured for CI but could not run locally without `TEST_DATABASE_URL`.
+- PostgreSQL-backed E2E and integration checks require CI because no local `DATABASE_URL` or `TEST_DATABASE_URL` is configured; hosted service bindings remain deployment work.
 
 ## Blockers
 
@@ -37,4 +37,4 @@
 ## Next action
 
 - Owner: User
-- Action: Review the committed 7-5 worker runtime foundation and approve or request changes before 7-6.
+- Action: Review the committed 7-6 environment separation and approve or request changes before 7-7.
