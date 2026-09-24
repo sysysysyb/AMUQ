@@ -6,6 +6,7 @@ import {
 } from "pg-boss";
 import { Pool, type PoolConfig } from "pg";
 
+import { applicationEnvironment } from "../config/environment.ts";
 import { migrationConfig } from "./migration-config.ts";
 
 const databaseProbeTimeoutMs = 5_000;
@@ -19,8 +20,12 @@ interface MigrationRow {
 }
 
 export function databaseUrl(
-  environment: { DATABASE_URL?: string } = process.env,
+  environment: {
+    AMUQ_ENV?: string | undefined;
+    DATABASE_URL?: string | undefined;
+  } = process.env,
 ): string {
+  applicationEnvironment(environment);
   const value = environment.DATABASE_URL;
   if (!value) {
     throw new Error("DATABASE_URL is required");

@@ -8,13 +8,18 @@ import {
 
 describe("database configuration", () => {
   it("requires DATABASE_URL before starting a database process", () => {
-    expect(() => databaseUrl({})).toThrow("DATABASE_URL is required");
+    expect(() => databaseUrl({ AMUQ_ENV: "test" })).toThrow(
+      "DATABASE_URL is required",
+    );
   });
 
   it("returns the configured PostgreSQL connection URL", () => {
-    expect(databaseUrl({ DATABASE_URL: "postgresql://localhost/amuq" })).toBe(
-      "postgresql://localhost/amuq",
-    );
+    expect(
+      databaseUrl({
+        AMUQ_ENV: "development",
+        DATABASE_URL: "postgresql://localhost/amuq",
+      }),
+    ).toBe("postgresql://localhost/amuq");
   });
 
   it("bounds database connection and readiness query waits", async () => {

@@ -4,10 +4,10 @@ import swagger from "@fastify/swagger";
 import swaggerUi from "@fastify/swagger-ui";
 import Fastify, { type RawRequestDefaultExpression } from "fastify";
 
-type Environment = "development" | "production" | "test";
+import type { ApplicationEnvironment } from "../config/environment.ts";
 
 export interface BuildServerOptions {
-  environment?: Environment;
+  environment?: ApplicationEnvironment;
   onClose?: () => Promise<void>;
   readiness?: () => Promise<void>;
 }

@@ -24,6 +24,7 @@ jobs:
           --health-timeout 5s
           --health-retries 10
     env:
+      AMUQ_ENV: test
       DATABASE_URL: postgresql://postgres:postgres@localhost:5432/amuq_test
       TEST_DATABASE_URL: postgresql://postgres:postgres@localhost:5432/amuq_test
     steps:
@@ -38,7 +39,8 @@ jobs:
       - run: pnpm typecheck
       - run: pnpm build
       - run: pnpm test
-      - name: Smoke test production API
+      - run: pnpm test:e2e
+      - name: Smoke test built API
         run: |
           set -euo pipefail
           node apps/api/dist/http/index.js &
@@ -48,7 +50,7 @@ jobs:
           kill -TERM "$api_pid"
           wait "$api_pid"
           trap - EXIT
-      - name: Smoke test production worker
+      - name: Smoke test built worker
         run: |
           set -euo pipefail
           worker_log="${RUNNER_TEMP}/amuq-worker.log"
