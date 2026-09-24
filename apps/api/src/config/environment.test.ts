@@ -2,7 +2,7 @@ import { readFileSync } from "node:fs";
 
 import { describe, expect, it } from "vitest";
 
-import { applicationEnvironment } from "./environment.js";
+import { applicationEnvironment, proxySharedSecret } from "./environment.js";
 
 describe("application environment", () => {
   it.each(["development", "test", "production"] as const)(
@@ -21,6 +21,25 @@ describe("application environment", () => {
     },
   );
 
+  it("requires the proxy shared secret in production", () => {
+    expect(() => proxySharedSecret({ AMUQ_ENV: "production" })).toThrow(
+      "PROXY_SHARED_SECRET is required in production",
+    );
+  });
+
+  it("reads the configured proxy shared secret", () => {
+    expect(
+      proxySharedSecret({
+        AMUQ_ENV: "production",
+        PROXY_SHARED_SECRET: "shared-secret",
+      }),
+    ).toBe("shared-secret");
+  });
+
+  it("does not require a proxy shared secret outside production", () => {
+    expect(proxySharedSecret({ AMUQ_ENV: "test" })).toBeUndefined();
+  });
+
   it("keeps example environment values empty", () => {
     const example = readFileSync(
       new URL("../../../../.env.example", import.meta.url),
@@ -35,6 +54,7 @@ describe("application environment", () => {
       "HOST=",
       "PORT=",
       "API_ORIGIN=",
+      "PROXY_SHARED_SECRET=",
       "DATABASE_URL=",
       "TEST_DATABASE_URL=",
       "R2_ACCOUNT_ID=",

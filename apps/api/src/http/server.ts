@@ -5,10 +5,12 @@ import swaggerUi from "@fastify/swagger-ui";
 import Fastify, { type RawRequestDefaultExpression } from "fastify";
 
 import type { ApplicationEnvironment } from "../config/environment.ts";
+import { resolveClientAddress } from "./client-address.ts";
 
 export interface BuildServerOptions {
   environment?: ApplicationEnvironment;
   onClose?: () => Promise<void>;
+  proxySecret?: string;
   readiness?: () => Promise<void>;
 }
 
@@ -66,7 +68,10 @@ export async function buildServer(options: BuildServerOptions = {}) {
   const server = Fastify({
     genReqId: requestId,
     logger: environment !== "test",
+    trustProxy: false,
   });
+
+  server.decorateRequest("clientAddress", "");
 
   await server.register(swagger, {
     openapi: {
@@ -83,6 +88,7 @@ export async function buildServer(options: BuildServerOptions = {}) {
   }
 
   server.addHook("onRequest", async (request, reply) => {
+    request.clientAddress = resolveClientAddress(request, options.proxySecret);
     reply.header("x-request-id", request.id);
   });
 
@@ -126,6 +132,5 @@ export async function buildServer(options: BuildServerOptions = {}) {
     server.swagger(),
   );
 
-  await server.ready();
   return server;
 }

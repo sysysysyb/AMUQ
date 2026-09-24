@@ -3,19 +3,39 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { GET, POST } from "./route";
 
 const originalApiOrigin = process.env.API_ORIGIN;
+const originalProxySharedSecret = process.env.PROXY_SHARED_SECRET;
 
 afterEach(() => {
   vi.unstubAllGlobals();
+  vi.unstubAllEnvs();
   if (originalApiOrigin === undefined) {
     delete process.env.API_ORIGIN;
   } else {
     process.env.API_ORIGIN = originalApiOrigin;
   }
+  if (originalProxySharedSecret === undefined) {
+    delete process.env.PROXY_SHARED_SECRET;
+  } else {
+    process.env.PROXY_SHARED_SECRET = originalProxySharedSecret;
+  }
 });
 
 describe("same-origin API proxy", () => {
+  it("rejects an insecure API origin in production", async () => {
+    vi.stubEnv("NODE_ENV", "production");
+    process.env.API_ORIGIN = "http://api.example.test";
+    process.env.PROXY_SHARED_SECRET = "server-secret";
+
+    await expect(
+      GET(new Request("https://web.example.test/api/health"), {
+        params: Promise.resolve({ path: ["health"] }),
+      }),
+    ).rejects.toThrow("API_ORIGIN must use https in production");
+  });
+
   it("forwards the path, query, and one generated request ID", async () => {
     process.env.API_ORIGIN = "https://api.example.test/base/";
+    process.env.PROXY_SHARED_SECRET = "server-secret";
     const upstream = vi.fn(
       async (_input: string | URL | Request, init?: RequestInit) => {
         const headers = new Headers(init?.headers);
@@ -24,6 +44,8 @@ describe("same-origin API proxy", () => {
         expect(requestId).toMatch(
           /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/,
         );
+        expect(headers.get("x-amuq-client-address")).toBe("203.0.113.7");
+        expect(headers.get("x-amuq-proxy-secret")).toBe("server-secret");
 
         return Response.json(
           { status: "ok" },
@@ -35,7 +57,12 @@ describe("same-origin API proxy", () => {
 
     const response = await GET(
       new Request("http://web.example.test/api/health?probe=1", {
-        headers: { "x-request-id": "browser-controlled" },
+        headers: {
+          "x-amuq-client-address": "198.51.100.9",
+          "x-amuq-proxy-secret": "attacker-controlled",
+          "x-request-id": "browser-controlled",
+          "x-vercel-forwarded-for": "203.0.113.7",
+        },
       }),
       { params: Promise.resolve({ path: ["health"] }) },
     );
@@ -48,6 +75,30 @@ describe("same-origin API proxy", () => {
     expect(response.headers.get("x-request-id")).not.toBe("browser-controlled");
     expect(response.headers.get("cache-control")).toBe("no-store");
     await expect(response.json()).resolves.toEqual({ status: "ok" });
+  });
+
+  it("preserves distinct Vercel client addresses across one upstream", async () => {
+    process.env.API_ORIGIN = "https://api.example.test";
+    process.env.PROXY_SHARED_SECRET = "server-secret";
+    const addresses: (string | null)[] = [];
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async (_input: string | URL | Request, init?: RequestInit) => {
+        addresses.push(new Headers(init?.headers).get("x-amuq-client-address"));
+        return Response.json({ status: "ok" });
+      }),
+    );
+
+    for (const address of ["203.0.113.7", "198.51.100.9"]) {
+      await GET(
+        new Request("http://web.example.test/api/health", {
+          headers: { "x-vercel-forwarded-for": address },
+        }),
+        { params: Promise.resolve({ path: ["health"] }) },
+      );
+    }
+
+    expect(addresses).toEqual(["203.0.113.7", "198.51.100.9"]);
   });
 
   it("streams request bodies and keeps one gateway request ID", async () => {

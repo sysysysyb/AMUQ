@@ -1,11 +1,11 @@
 # Workflow Status
 
-> Updated: 2026-09-25 00:27 KST
+> Updated: 2026-09-25 02:24 KST
 
 ## Current state
 
 - Status: review
-- Stage: Stage 6 - Issue #7 task 7-6 environment separation
+- Stage: Stage 6 - Issue #7 task 7-7 trusted proxy boundary
 
 ## Active work
 
@@ -17,18 +17,18 @@
 
 ## Current checkpoint
 
-- Last completed: Implemented 7-6 environment separation and resolved the Playwright environment-loading review finding.
-- Latest verification: Format, lint, typecheck, Vitest (42 passed, 7 DB-skipped), integration (8 passed, 7 DB-skipped), build, and diff check - passed.
+- Last completed: Implemented and re-reviewed the authenticated Web-to-API client-address boundary.
+- Latest verification: Focused proxy tests (26 passed), format, lint, typecheck, full Vitest, integration, build, and diff check - passed; local E2E startup requires a database URL.
 
 ## Review focus
 
-- `apps/api/src/config/environment.ts::applicationEnvironment` - strict development/test/production validation
-- `apps/api/package.json::scripts` - shared root `.env` loading for API, worker, and database commands
-- `playwright.config.ts::webServer` - isolated test environment and root `.env` loading
+- `apps/api/src/http/client-address.ts::resolveClientAddress` - authenticated address validation and socket fallback
+- `apps/web/app/api/[...path]/route.ts::proxy` - caller-header replacement and HTTPS-only production forwarding
+- `apps/api/test/integration/health.test.ts::HTTP foundation` - spoofing and malformed-address coverage through the real server wiring
 
 ## Remaining risk
 
-- PostgreSQL-backed E2E and integration checks require CI because no local `DATABASE_URL` or `TEST_DATABASE_URL` is configured; hosted service bindings remain deployment work.
+- Vercel and Railway must receive the same strong `PROXY_SHARED_SECRET`; preview must verify the accepted address end to end before rate limiting uses it.
 
 ## Blockers
 
@@ -37,4 +37,4 @@
 ## Next action
 
 - Owner: User
-- Action: Review the committed 7-6 environment separation and approve or request changes before 7-7.
+- Action: Review the committed 7-7 trusted proxy boundary and approve or request changes before 7-8.

@@ -1,4 +1,5 @@
 import { randomUUID } from "node:crypto";
+import { isIP } from "node:net";
 
 interface RouteContext {
   params: Promise<{ path: string[] }>;
@@ -7,6 +8,8 @@ interface RouteContext {
 type StreamingRequestInit = RequestInit & { duplex?: "half" };
 
 const upstreamTimeoutMs = 10_000;
+const clientAddressHeader = "x-amuq-client-address";
+const proxySecretHeader = "x-amuq-proxy-secret";
 const hopByHopHeaders = [
   "connection",
   "keep-alive",
@@ -32,10 +35,28 @@ function apiOrigin(): URL {
   }
 
   const origin = new URL(configured ?? "http://127.0.0.1:3001");
+  if (process.env.NODE_ENV === "production" && origin.protocol !== "https:") {
+    throw new Error("API_ORIGIN must use https in production");
+  }
   if (origin.protocol !== "http:" && origin.protocol !== "https:") {
     throw new Error("API_ORIGIN must use http or https");
   }
   return origin;
+}
+
+function proxySharedSecret(): string | undefined {
+  const secret = process.env.PROXY_SHARED_SECRET;
+  if (!secret && process.env.NODE_ENV === "production") {
+    throw new Error("PROXY_SHARED_SECRET is required in production");
+  }
+  return secret;
+}
+
+function platformClientAddress(request: Request): string {
+  const address = request.headers.get("x-vercel-forwarded-for");
+  if (address && isIP(address) !== 0) return address;
+  if (process.env.NODE_ENV !== "production") return "127.0.0.1";
+  throw new Error("x-vercel-forwarded-for must contain one IP address");
 }
 
 async function proxy(
@@ -51,11 +72,18 @@ async function proxy(
   origin.search = new URL(request.url).search;
 
   const requestId = randomUUID();
+  const proxySecret = proxySharedSecret();
   const headers = new Headers(request.headers);
   stripHopByHopHeaders(headers);
   headers.delete("content-length");
   headers.delete("host");
+  headers.delete(clientAddressHeader);
+  headers.delete(proxySecretHeader);
   headers.set("x-request-id", requestId);
+  if (proxySecret) {
+    headers.set(clientAddressHeader, platformClientAddress(request));
+    headers.set(proxySecretHeader, proxySecret);
+  }
 
   const init: StreamingRequestInit = {
     method: request.method,
