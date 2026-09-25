@@ -8,7 +8,7 @@ export default defineConfig({
   webServer: [
     {
       command:
-        "node --env-file-if-exists=.env --experimental-strip-types apps/api/src/http/index.ts",
+        "node --conditions=development --env-file-if-exists=.env --experimental-strip-types apps/api/src/http/index.ts",
       env: { AMUQ_ENV: "test" },
       port: 3001,
       reuseExistingServer: false,

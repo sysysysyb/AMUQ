@@ -2,10 +2,7 @@ import { EventEmitter } from "node:events";
 
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-import {
-  buildServer,
-  registerShutdownHandlers,
-} from "../../src/http/server.js";
+import { buildServer, registerShutdownHandlers } from "#api/http/server";
 
 const servers: Awaited<ReturnType<typeof buildServer>>[] = [];
 

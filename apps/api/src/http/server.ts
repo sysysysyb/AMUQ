@@ -4,7 +4,7 @@ import swagger from "@fastify/swagger";
 import swaggerUi from "@fastify/swagger-ui";
 import Fastify, { type RawRequestDefaultExpression } from "fastify";
 
-import type { ApplicationEnvironment } from "../config/environment.ts";
+import type { ApplicationEnvironment } from "#api/config/environment";
 import { resolveClientAddress } from "./client-address.ts";
 
 export interface BuildServerOptions {

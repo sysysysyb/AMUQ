@@ -8,7 +8,7 @@ import {
   createDatabasePool,
   databaseUrl,
   pgBossDatabaseOptions,
-} from "./db/database.ts";
+} from "#api/db/database";
 
 const workerShutdownTimeoutMs = 30_000;
 

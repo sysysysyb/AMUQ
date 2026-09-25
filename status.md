@@ -1,11 +1,11 @@
 # Workflow Status
 
-> Updated: 2026-09-25 20:13 KST
+> Updated: 2026-09-26 00:46 KST
 
 ## Current state
 
 - Status: review
-- Stage: Stage 6 - Issue #7 task 7-8 deployment and CI validation
+- Stage: Stage 6 - Issue #7 task 7-9 runtime-safe path aliases
 
 ## Active work
 
@@ -17,18 +17,18 @@
 
 ## Current checkpoint
 
-- Last completed: Deployed the preview topology and verified Vercel Web to Railway API to PostgreSQL health paths.
-- Latest verification: Preview smoke, format, lint, typecheck, unit tests (48 passed), database-free integration tests (9 passed), build, diff check, and P1 re-review - passed; database integration and E2E await CI PostgreSQL.
+- Last completed: Implemented and reviewed runtime-safe `@web/*`, `#api/*`, and `@amuq/*` import boundaries for 7-9.
+- Latest verification: Alias RED checks, format, lint, typecheck, unit tests (48 passed), database-free integration tests (9 passed), Web/API builds, source/built Node import smoke, code review, and focused post-fix checks - passed; database integration and E2E await CI PostgreSQL.
 
 ## Review focus
 
-- `.github/workflows/database.yml::database job` - Node floor, complete quality gates, browser installation, and schema restoration before E2E
-- `AGENTS.md::Railway Tooling` - CLI, MCP, and railway-agent routing rules
-- `package.json::engines.node` - minimum Node version required by locked dependencies
+- `apps/api/package.json::imports` - source and built runtime targets for `#api/*`
+- `vitest.config.ts::resolve.alias` - source aliases used by tests without a rewrite dependency
+- `apps/web/tsconfig.json::compilerOptions.paths` - Next.js `@web/*` boundary
 
 ## Remaining risk
 
-- An unintended Vercel production deployment remains active until the user explicitly approves its removal.
+- The complete PostgreSQL integration and E2E workflow remains unverified until the branch is pushed and GitHub Actions runs.
 
 ## Blockers
 
@@ -37,4 +37,4 @@
 ## Next action
 
 - Owner: User
-- Action: Review the 7-8 commit and approve or reject removal of the unintended Vercel production deployment.
+- Action: Review the current 7-9 runtime-safe path aliases and approve or request changes.

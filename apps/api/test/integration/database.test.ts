@@ -3,12 +3,9 @@ import { randomUUID } from "node:crypto";
 import { afterAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { getRollbackPlans, PgBoss } from "pg-boss";
 
-import {
-  assertDatabaseSchema,
-  createDatabasePool,
-} from "../../src/db/database.js";
-import { migrateDatabase } from "../../src/db/migrations.js";
-import { startWorker, workerDatabaseOptions } from "../../src/worker.js";
+import { assertDatabaseSchema, createDatabasePool } from "#api/db/database";
+import { migrateDatabase } from "#api/db/migrations";
+import { startWorker, workerDatabaseOptions } from "#api/worker";
 import { assertTestDatabaseUrl } from "../support/test-database.js";
 
 const connectionString = process.env.TEST_DATABASE_URL

@@ -1,12 +1,12 @@
 import {
   applicationEnvironment,
   proxySharedSecret,
-} from "../config/environment.ts";
+} from "#api/config/environment";
 import {
   assertDatabaseSchema,
   createDatabasePool,
   databaseUrl,
-} from "../db/database.ts";
+} from "#api/db/database";
 import { buildServer, registerShutdownHandlers } from "./server.ts";
 
 const environment = applicationEnvironment();
