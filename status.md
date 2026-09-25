@@ -1,6 +1,6 @@
 # Workflow Status
 
-> Updated: 2026-09-26 01:22 KST
+> Updated: 2026-09-26 03:01 KST
 
 ## Current state
 
@@ -17,18 +17,17 @@
 
 ## Current checkpoint
 
-- Last completed: Added the Korean-first Issue and Pull Request writing rule and updated Pull Request #21 to match it.
-- Latest verification: Template Prettier check and `git diff --check` - passed; database integration and E2E await GitHub Actions PostgreSQL.
+- Last completed: Updated Corepack before dependency installation so the Database workflow can use `pnpm@11.20.0` on Node.js 22.13.0.
+- Latest verification: GitHub Actions Database run 36170432509 - passed PostgreSQL integration, E2E, and built API/worker smoke checks.
 
 ## Review focus
 
-- `.github/pull_request_template.md::language guidance` - Korean-first Pull Request writing rule
-- `.github/ISSUE_TEMPLATE/*.yml::language guidance` - matching Issue writing rule
-- `Pull Request #21` - implementation report and CI result
+- `.github/workflows/database.yml::integration` - pinned Corepack bootstrap before pnpm installation
+- `Pull Request #21` - implementation report and passing CI result
 
 ## Remaining risk
 
-- The complete PostgreSQL integration and E2E workflow remains unverified until GitHub Actions finishes.
+- `actions/setup-node@v4` emits a non-blocking GitHub Actions runtime deprecation warning.
 
 ## Blockers
 
