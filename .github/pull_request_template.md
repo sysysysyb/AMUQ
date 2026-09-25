@@ -1,4 +1,4 @@
-<!-- Issue와 PR의 제목 및 본문은 한국어로 작성하되, 고유 명사와 기술 용어는 정확한 영어 표현을 사용합니다. -->
+<!-- Write Issue and PR titles and descriptions in Korean, while preserving exact English names for proper nouns and technical terms. -->
 
 ## Outcome
 
