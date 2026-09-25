@@ -17,6 +17,8 @@ blob-report/
 
 # Local tool state
 .agents/
+.railway/
+.vercel/
 .compound-engineering/*.local.yaml
 .context/compound-engineering/
 .codex/hooks.json
