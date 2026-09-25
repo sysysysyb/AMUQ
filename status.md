@@ -1,11 +1,11 @@
 # Workflow Status
 
-> Updated: 2026-09-25 02:24 KST
+> Updated: 2026-09-25 20:13 KST
 
 ## Current state
 
 - Status: review
-- Stage: Stage 6 - Issue #7 task 7-7 trusted proxy boundary
+- Stage: Stage 6 - Issue #7 task 7-8 deployment and CI validation
 
 ## Active work
 
@@ -17,18 +17,18 @@
 
 ## Current checkpoint
 
-- Last completed: Implemented and re-reviewed the authenticated Web-to-API client-address boundary.
-- Latest verification: Focused proxy tests (26 passed), format, lint, typecheck, full Vitest, integration, build, and diff check - passed; local E2E startup requires a database URL.
+- Last completed: Deployed the preview topology and verified Vercel Web to Railway API to PostgreSQL health paths.
+- Latest verification: Preview smoke, format, lint, typecheck, unit tests (48 passed), database-free integration tests (9 passed), build, diff check, and P1 re-review - passed; database integration and E2E await CI PostgreSQL.
 
 ## Review focus
 
-- `apps/api/src/http/client-address.ts::resolveClientAddress` - authenticated address validation and socket fallback
-- `apps/web/app/api/[...path]/route.ts::proxy` - caller-header replacement and HTTPS-only production forwarding
-- `apps/api/test/integration/health.test.ts::HTTP foundation` - spoofing and malformed-address coverage through the real server wiring
+- `.github/workflows/database.yml::database job` - Node floor, complete quality gates, browser installation, and schema restoration before E2E
+- `AGENTS.md::Railway Tooling` - CLI, MCP, and railway-agent routing rules
+- `package.json::engines.node` - minimum Node version required by locked dependencies
 
 ## Remaining risk
 
-- Vercel and Railway must receive the same strong `PROXY_SHARED_SECRET`; preview must verify the accepted address end to end before rate limiting uses it.
+- An unintended Vercel production deployment remains active until the user explicitly approves its removal.
 
 ## Blockers
 
@@ -37,4 +37,4 @@
 ## Next action
 
 - Owner: User
-- Action: Review the committed 7-7 trusted proxy boundary and approve or request changes before 7-8.
+- Action: Review the 7-8 commit and approve or reject removal of the unintended Vercel production deployment.

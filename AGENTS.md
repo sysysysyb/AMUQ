@@ -35,6 +35,14 @@ Before using a skill, plugin, MCP server, or command required by this workflow:
 
 A similarly named or successor capability is not automatically an approved substitute.
 
+### Railway Tooling
+
+- Load the `use-railway` skill before operating Railway.
+- Use Railway CLI for repository-local operations such as linking, deploying local code, `railway run`, SSH, and reproducible CI commands.
+- Use Railway MCP primitives for structured project, service, environment, variable, and deployment operations when they are available in the active session.
+- Use `railway-agent` only when the user explicitly requests it or direct CLI or MCP inspection cannot resolve a multi-step diagnosis.
+- When CLI and MCP are equally suitable, use the more direct operation and do not repeat the same change through both.
+
 ## Design References
 
 Use these Mammo Cert Prep artifacts as references for scope, responsive behavior, component quality, state coverage, and level of detail:
