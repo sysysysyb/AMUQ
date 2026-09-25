@@ -1,4 +1,5 @@
 <!-- Write Issue and PR titles and descriptions in Korean, while preserving exact English names for proper nouns and technical terms. -->
+<!-- When creating a Pull Request, apply labels that match its type and scope. -->
 
 ## Outcome
 
