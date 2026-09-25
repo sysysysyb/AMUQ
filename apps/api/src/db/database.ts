@@ -6,7 +6,7 @@ import {
 } from "pg-boss";
 import { Pool, type PoolConfig } from "pg";
 
-import { applicationEnvironment } from "../config/environment.ts";
+import { applicationEnvironment } from "#api/config/environment";
 import { migrationConfig } from "./migration-config.ts";
 
 const databaseProbeTimeoutMs = 5_000;

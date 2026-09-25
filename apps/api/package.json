@@ -3,13 +3,20 @@
   "private": true,
   "version": "0.0.0",
   "type": "module",
+  "imports": {
+    "#api/*": {
+      "types": "./src/*.ts",
+      "development": "./src/*.ts",
+      "default": "./dist/*.js"
+    }
+  },
   "scripts": {
     "build": "tsc -p tsconfig.build.json",
-    "db:check": "node --env-file-if-exists=../../.env --experimental-strip-types src/db/check.ts",
+    "db:check": "node --conditions=development --env-file-if-exists=../../.env --experimental-strip-types src/db/check.ts",
     "db:generate": "drizzle-kit generate --config drizzle.config.ts",
-    "db:migrate": "node --env-file-if-exists=../../.env --experimental-strip-types src/db/migrate.ts",
-    "dev": "node --env-file-if-exists=../../.env --watch --experimental-strip-types src/http/index.ts",
-    "dev:worker": "node --env-file-if-exists=../../.env --watch --experimental-strip-types src/worker.ts",
+    "db:migrate": "node --conditions=development --env-file-if-exists=../../.env --experimental-strip-types src/db/migrate.ts",
+    "dev": "node --conditions=development --env-file-if-exists=../../.env --watch --experimental-strip-types src/http/index.ts",
+    "dev:worker": "node --conditions=development --env-file-if-exists=../../.env --watch --experimental-strip-types src/worker.ts",
     "start": "node --env-file-if-exists=../../.env dist/http/index.js",
     "start:worker": "node --env-file-if-exists=../../.env dist/worker.js",
     "typecheck": "tsc --noEmit"
