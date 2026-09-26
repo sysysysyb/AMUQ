@@ -1,6 +1,6 @@
 # Workflow Status
 
-> Updated: 2026-09-26 03:01 KST
+> Updated: 2026-09-26 21:27 KST
 
 ## Current state
 
@@ -17,17 +17,17 @@
 
 ## Current checkpoint
 
-- Last completed: Updated Corepack before dependency installation so the Database workflow can use `pnpm@11.20.0` on Node.js 22.13.0.
-- Latest verification: GitHub Actions Database run 36170432509 - passed PostgreSQL integration, E2E, and built API/worker smoke checks.
+- Last completed: Pinned the Database workflow to Ubuntu 24.04 and upgraded `actions/setup-node` to v7.
+- Latest verification: GitHub Actions Database run 36241790521 - passed all checks on Ubuntu 24.04 with `actions/setup-node@v7`.
 
 ## Review focus
 
-- `.github/workflows/database.yml::integration` - pinned Corepack bootstrap before pnpm installation
+- `.github/workflows/database.yml::integration` - pinned runner image and current Node setup action
 - `Pull Request #21` - implementation report and passing CI result
 
 ## Remaining risk
 
-- `actions/setup-node@v4` emits a non-blocking GitHub Actions runtime deprecation warning.
+- None
 
 ## Blockers
 
