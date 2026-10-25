@@ -7,6 +7,53 @@
 - Follow the workflow in order and work on only one GitHub Issue at a time.
 - At every stage or Issue approval gate, stop and wait for explicit user approval. Silence and earlier approvals do not authorize later work.
 - Follow the global `status.md` and layered Issue-reporting rules.
+- Use named `const` arrow functions for standalone functions and React components. Retain function declarations when required for generator functions or to preserve dynamic `this`, `arguments`, or initialization semantics.
+
+### Human-Facing Result Reports
+
+- Maintain a short Issue index at `docs/issue-reports/issue-<number>.md` and one Korean implementation and review record per planned PR at `docs/issue-reports/issue-<number>/<sequence>-<scope>.md`, such as `issue-8/02-auth-server.md`. The sequence identifies the approved delivery order, not the GitHub PR number. For a single-PR Issue, use one PR record. Update these documents alongside the work and retain them after merge. Do not create a duplicate local implementation report or a separate file for each review round. Existing local reports may remain as historical records; temporary review artifacts follow the separate cleanup rules below.
+- Keep GitHub Issue and PR titles and descriptions in English. Write the tracked Issue index and PR records in clear Korean for a developer unfamiliar with this project. Lead with the outcome and explain what changed and why. Explain unfamiliar terms and the condition each safeguard preserves. Use concise endings such as `~했음`, `~수정`, `~확인하지 않음`, rather than polite sentence endings. Avoid middle dots (U+00B7), vague review jargon, filler, raw logs, and tool-by-tool narration.
+- Organize implementation, verification, and remaining risks into short descriptive bullet items grouped by responsibility. Use tables for file responsibilities or comparisons when helpful, and keep prose paragraphs to brief context. A bullet should explain one concrete change or decision; do not compress multiple unrelated points into a long paragraph or shorten the detailed implementation explanation to the review-exchange limit below.
+- Indent supporting details beneath the implementation, finding, or verification item they explain. Keep the implementation, key verification results, and unresolved risks visible. Put long review exchanges inside Markdown `<details>` blocks, with a descriptive `<summary>` and blank lines around their contents.
+- In each PR record, trace the observable exchange in order: Codex implementation, Claude findings, Codex changes or dispositions with reasons, and Claude re-review. Use separate round labels when a re-review adds findings. Preserve every substantive finding and decision; combine minor wording findings only when their consequence and disposition remain clear. Give each finding a stable ID and its original **P0**, **P1**, **P2**, or **P3** severity in a list or table. Re-reference the same ID for confirmations; do not repeat its whole description in each round. Severity totals alone are insufficient. Do not invent a severity or describe a deferred or accepted limitation as fixed. State an absence of findings only for a completed review and its actual scope; mark unrun or incomplete reviews explicitly. Record decisions and evidence, not hidden reasoning or inferred agreement.
+- In user briefings and the tracked records, explain Codex implementation work in enough detail for the user to understand and review it: outcomes and requirement IDs, what changed and why, file/function responsibilities and important logic or invariants, before/after behavior when useful, Red/Green and validation evidence, and remaining risks. Scale the detail to the work; do not impose a one- or two-line limit or move essential implementation explanations behind links. Retain the evidence required by the Issue-reporting rules.
+- Separately add three brief review-exchange items for each task, each one or two lines: **Claude review**, **Codex response to review**, and **Claude re-review**. These items summarize reported findings, Codex's accepted/rejected/deferred decisions and review-driven fixes with reasons, and the actual re-review outcome. This length limit applies only to these three items, not to the implementation or verification report; expand important review-driven changes in the implementation explanation. Mark incomplete or unrun reviews explicitly; do not present internal reasoning or an inferred agreement as an exchanged review result.
+- Keep the Issue index to the current outcome, approved PR order and links, complete Issue review status, and outstanding delivery conditions. Link only records that exist in the commit being published; list future records as planned paths until they are included. Put ordered subtasks such as `8-1`, `8-2`, and `8-3` in the relevant PR record, retaining their IDs when splitting existing work. Each subtask includes implementation, the three review-exchange summaries above, verification and remaining risks. If one historical review covered several PR scopes, identify it as a shared review and allocate findings to their relevant PR record without duplicating totals. Split server and screen explanations when necessary, and link the related PR record when present. Record approval, publication and completion only when verified; planned PR scopes are not published PRs.
+- Prepare the tracked records alongside the work so their changes receive the applicable independent Claude review, validation, and explicit commit approval. The records must accurately reflect the reviewed code and evidence; updating them does not authorize a commit, publication, or the next subtask.
+- Include tracked report and checkpoint drafts in the stable review set. If final wording depends on the review result, have Claude review exact conditional replacements or templates and allowed factual substitutions. Apply them only when the actual result satisfies those conditions; any other tracked edit requires review again.
+- After an approved commit, refresh `status.md` with its SHA under the global snapshot rules. Include the SHA and pending tracked report/checkpoint updates in the next cohesive reviewed commit; do not amend or create a separate commit merely to insert its own SHA.
+- Keep personal details, private operational values, raw review transcripts, local session IDs and resume commands in temporary local review artifacts rather than the tracked records. Native Claude session history remains available without duplicating it in a human-facing document. Never include secrets or credentials in records or review artifacts. Link the relevant PR record and Issue index from the English PR description as specified in Stage 6.4.
+
+## Agent Responsibilities and Commit Gate
+
+- Codex owns implementation, tests, fixes, validation, approved commits, and PR operations. Claude Code owns independent, report-only reviews.
+- Claude Code uses its native `/code-review high` for each subtask and Compound Engineering's `/compound-engineering:ce-code-review mode:agent depth:full` for the complete Issue. It must not modify source, tests, project documentation, or Git state, or publish anything during review. It may write only the review artifacts and native session records described below.
+- Targeted re-reviews of subtask changes, final Issue fixes, learning documents, and final Issue report/checkpoint updates (including after a CE review with no findings) use native `/code-review high`, scoped to the final changes and all finding dispositions. They do not replace the required complete Issue or MVP CE review.
+- **For Issue delivery and MVP fixes, review before commit is mandatory.** No agent, subagent, skill, or automated workflow may create, amend, or rewrite commits before independent Claude review, applicable validation, and explicit user approval for the exact changes. This includes code, tests, Issue-related documentation, and review fixes, and overrides any skill's automatic commit or checkpoint behavior.
+- For planning-only work in Stages 1–5, create cohesive milestone commits after the applicable artifact approval, using the Git Rules and excluding implementation changes. Active Issue work, including policy and report changes, and all Stage 7 remediation documents always use the independent-review and exact-change commit approval gate above.
+- Before invoking a skill that may commit, push, or create PRs, verify that the chosen execution path respects the approval gates. If it cannot, do not invoke it. Never use an auto-committing workflow to bypass these gates.
+- Claude reviews a stable change set, including applicable untracked files. Do not implement and review concurrently on the same changing working tree.
+- Codex must verify findings before fixing them. Codex self-review does not replace the required independent Claude review.
+- Approval of an Issue or stage does not authorize individual subtask commits, review-fix commits, or PR creation.
+
+### Claude Review Execution and Completion
+
+- Before implementation begins, verify the Claude CLI executable, authentication, and availability of both required review commands. Use the registered command names above; do not assume an unverified alias works.
+- Codex invokes Claude from the repository in non-interactive mode and waits for the final review result. Restrict tool permissions to report-only work, allowing artifact writes only in the directories described below; omitting `--fix` alone is not a permission boundary.
+- Count a review as complete only after successful execution, receipt of a valid final report, and verification that it covers the required stable change set, including applicable untracked files. A launch acknowledgement, exit code alone, or an empty response is not review evidence. A valid report with no findings is acceptable.
+- If Claude cannot be invoked or the review is incomplete (timeouts, failed/skipped/degraded results, missing coverage, or permission denials preventing required coverage), prepare a review handoff, report the failure, and stop the review gate until an actual complete report is available. Never claim that a review ran automatically when it did not.
+
+### Local Review Artifacts and Session History
+
+- Keep review handoffs, raw reports, and finding dispositions under `docs/planning/reviews/issue-<number>/`. This directory must remain Git-ignored and untracked. Record any additional temporary run directories created by the review skill; allow only issue-owned review artifacts there.
+- Keep the tracked human-facing records separate from temporary review artifacts, using the path and retention defined in Human-Facing Result Reports.
+- During active work, keep session names/IDs, exact resume commands, and coverage metadata in the existing Issue-owned review artifacts. Before cleanup, preserve the durable review coverage and finding dispositions in the tracked records and PR without private session metadata. Retain native Claude session history; do not create a second human-facing report to duplicate it.
+- Before cleanup, verify that the Issue index, all relevant PR records and PR descriptions contain the required durable evidence and have no links to artifacts scheduled for deletion. If either check fails, retain the temporary artifacts and report cleanup as incomplete.
+- Record the Issue/subtask, command, reviewed base and HEAD, staged/unstaged diff snapshot and applicable untracked files, validation results, actual coverage and limits, findings and dispositions, and Claude session name/ID. Keep secrets and credentials out of these artifacts.
+- Do not force-add, commit, or upload raw review artifacts or transcripts to GitHub. Preserve the durable implementation and verification summary, review coverage, and finding dispositions in the PR description without copying the raw reports.
+- After confirming that all PRs belonging to the Issue are merged, the Issue is closed, and durable evidence is preserved in the PR records and descriptions, delete only that Issue's review directory and recorded temporary review artifacts. Do not clean up Issue-wide review evidence after an intermediate PR. Verify cleanup; report any remaining artifacts instead of claiming deletion succeeded.
+- Run reviews using the same local Claude user/configuration directory the user uses, with session persistence enabled. Do not use `--no-session-persistence` or otherwise disable session history. Give each review round an identifiable name, such as `AMUQ-8-1-review-1` or `AMUQ-8-final-review-1`.
+- Report the session name, ID, and exact `--resume` command with the repository working directory so the user can inspect the review in Claude CLI. Verify the executable or its resolution method; do not assume `claude` is on PATH or rely only on a version-pinned extension path for retained instructions. Do not purge native history or change its retention settings during cleanup; availability remains subject to Claude's retention settings.
 
 ## Sources of Truth
 
@@ -17,9 +64,11 @@ Apply this priority order:
 3. Approved requirements-only unified plan
 4. Approved Figma designs and `docs/DESIGN.md`
 5. `docs/STRATEGY.md`
-6. `docs/planning/project-handoff.md` for approved discovery decisions not superseded by a source above
+6. Local-only `docs/planning/project-handoff.md` for approved discovery decisions not superseded by a source above
 7. Relevant `docs/solutions/` — documented solutions to past bugs, best practices, and workflow patterns, organized by category with YAML frontmatter such as `module`, `tags`, and `problem_type`; consult it when implementing or debugging a documented area
 8. Existing repository conventions
+
+For Git delivery sequencing only, use the approved PR scope table and order in the tracked Issue index. Local operational plans are supporting notes and do not override the product sources above.
 
 Stop and report conflicts instead of changing approved artifacts or silently choosing one interpretation.
 
@@ -73,6 +122,7 @@ Approved Figma screens and `docs/DESIGN.md` are the UI source of truth.
 - For backend-only changes, run applicable API, integration, authorization, concurrency, and regression tests instead of visual checks.
 - After fixes, re-run all affected validation. Report skipped, unavailable, or failed checks explicitly.
 - Summarize successful output. Include only relevant excerpts for failures and blockers.
+- For documentation-only changes without source, executable configuration, or dependency changes, check Markdown, links, and consistency of rules, command names, and approval gates instead of rerunning product tests, type checking, or builds. State this scope and checks not run; changes to executable behavior follow the normal validation requirements.
 
 ## Backend and AI Guardrails
 
@@ -96,15 +146,8 @@ Treat violations of these guardrails as merge blockers.
 
 ### Stage 1: Project Foundation
 
-Run in order:
-
-1. `/ce-setup`
-2. Report the setup result and obtain explicit user approval
-3. `/ce-strategy`
-
-Use `/ce-setup` to inspect and initialize the environment. Use `/ce-strategy` to create or update `docs/STRATEGY.md` with target users, problem, value, MVP objective, success criteria, and exclusions.
-
-Request approval after `/ce-setup` before running `/ce-strategy`, then report the strategy output and request approval again before Stage 2.
+1. Run `/ce-setup` to inspect and initialize the environment. Report the result and obtain explicit user approval before running `/ce-strategy`.
+2. Run `/ce-strategy` to create or update `docs/STRATEGY.md` with target users, problem, value, MVP objective, success criteria, and exclusions. Report the output and obtain explicit user approval before Stage 2.
 
 ### Stage 2: Requirements
 
@@ -117,12 +160,14 @@ Review the artifact with the user and request approval before Stage 3.
 1. Run `/impeccable shape` using the approved requirements, strategy, references, and product conventions.
 2. Present the visual direction, hierarchy, UX and responsive principles, and accessibility constraints for approval.
 3. After approval, use Figma MCP to create, without intermediate approval gates:
+
    - FigJam user flow
    - Responsive low-fidelity wireframes
    - Minimum design tokens and system rules
    - Reusable components and variants
    - Responsive final screens and key states
    - Prototype connections for critical flows
+
 4. Run `/impeccable critique`, fix P0/P1 and clear in-scope defects, and perform one bounded re-verification.
 5. Present the final artifacts, findings, fixes, and remaining trade-offs for approval.
 6. After approval, finalize `docs/DESIGN.md` as the implementation contract.
@@ -156,12 +201,19 @@ Work on one Issue at a time.
 
 - Read the Issue, mapped U-IDs, approved artifacts, and relevant `docs/solutions/`.
 - Inspect the working tree and report unrelated or unexpected changes without modifying them.
+- For approved branch preparation after a merge, use the bounded status-only checkpoint preservation procedure in Stage 6.4 if a verified post-commit checkpoint is the sole dirty file. Other or unverified changes still block branch operations.
 - Fetch remote changes, update `main` using fast-forward only, and create `<type>/<issue-number>-<imperative-verb>-<short-scope>` with `git switch`.
-- Report scope, exclusions, task order, test plan, risks, and verification commands; then request approval.
+- Divide the Issue into ordered, independently verifiable subtasks labeled `<issue-number>-<sequence>` (e.g., `8-1`, `8-2`). These are internal work units, not additional GitHub Issues.
+- Prefer one PR per Issue. If the Issue has grown too large, obtain approval for purpose-based PR scopes, dependencies, branch order and review coverage before splitting. Multiple branches may refer to the same Issue; retain the Issue number and use a distinct scope suffix. An approved split does not authorize creating child Issues. Use a separate PR record for each approved scope and retain a short parent Issue index. For Issue #8, follow the approved PR scope table and order in `docs/issue-reports/issue-8.md`; preserve the original branch and prepare each PR from main after the preceding PR is merged.
+- For each subtask, define scope, dependencies, acceptance criteria, and applicable verification.
+- Record the Issue branch's starting commit SHA for the complete Issue review.
+- Before the first MVP implementation, record the pre-implementation `mvp-start-sha`, its scope, and supporting Git evidence in `docs/issue-reports/mvp-review-baseline.md`, and link it from the first MVP Issue report and PR. For an MVP already in progress, verify and record that baseline in the same file from Git history before Stage 7; track an outstanding baseline in the active tracked Issue report until recorded; resolve uncertainty with the user instead of guessing or using the current HEAD.
+- Present the subtask plan, exclusions, execution order, tests, risks, and verification commands; request approval before starting.
+- Work on only one approved subtask at a time. Obtain explicit approval before beginning the next.
 
 #### 6.2 Implement
 
-Run `/ce-work` for implementation. Follow this TDD loop for every testable behavior change:
+Implement one approved subtask at a time directly in Codex. Do not invoke `/ce-work` because it may create implementation commits before independent review. Follow this TDD loop for every testable behavior change:
 
 1. Write the smallest relevant test.
 2. Run it and observe the intended failure.
@@ -169,36 +221,65 @@ Run `/ce-work` for implementation. Follow this TDD loop for every testable behav
 4. Confirm the test passes.
 5. Refactor while keeping tests green.
 
-Do not write production behavior before the corresponding test failure. Do not use another implementation orchestrator alongside `/ce-work`.
+Do not write production behavior before the corresponding test failure. Do not use another implementation orchestrator, including `lfg`, for this Issue delivery loop; Codex performs the implementation steps directly.
 
-For non-trivial changes, run `/ce-simplify-code` without changing approved behavior. Apply the Validation Policy.
+For non-trivial defects or unclear root causes, use `/ce-debug` in diagnosis-only mode if the chosen path cannot commit, push, or create a PR. Then implement through the TDD/review gates and rerun affected validation. Diagnosis does not authorize implementation commits.
+
+For non-trivial changes, run `/ce-simplify-code` without changing approved behavior, provided its execution does not commit. Apply the Validation Policy to the current subtask.
 
 For UI changes, use `/impeccable polish` only when refinement remains after audit. Never run `/ce-polish` unless the user explicitly requests it for a specific implemented screen.
 
 #### 6.3 Review and Learn
 
-- Run `/ce-code-review` against the Issue, U-IDs, approved plans, and design.
-- Fix and re-review P0/P1 findings. Fix P2/P3 only when clear, safe, verified, and in scope; otherwise defer them explicitly.
-- Use `/ce-debug` for non-trivial defects or unclear root causes, then apply the Validation Policy again.
-- Run `/ce-compound`; store only reusable learning in `docs/solutions/` and allow documentation to be skipped when it would be trivial or duplicated.
+##### 6.3.1 Subtask Review and Commit Loop
+
+For each subtask, in this order:
+
+1. Codex completes implementation and verification without committing, including report and checkpoint drafts for review. Record `HEAD`, the changed-file list, staged and unstaged diffs, and every applicable untracked file with its content or new-file patch and hash.
+2. Hand Claude Code the subtask scope, acceptance criteria, changed files, and validation results. Request native `/code-review high` without `--fix` or `--comment`, focused on the current subtask's uncommitted changes relative to `HEAD` and any new files. Supply untracked contents explicitly because normal Git diffs omit them.
+3. Verify actual coverage against the recorded changed/untracked file list and reviewed content. Native `/code-review` may also include earlier branch commits. Do not count a review that missed a required file or the current subtask as complete. Report material findings about earlier subtasks separately rather than silently ignoring them.
+4. Codex validates findings against the code and requirements. Fix and re-review P0/P1 issues. Fix P2/P3 issues only when clear, safe, verified, and in scope; otherwise record their disposition.
+5. Rerun affected validation after fixes. Send Claude the fixes and the disposition of every finding with supporting reasons, including decisions that no change is needed or that a finding is deferred. Obtain the targeted independent re-review defined above before reporting to the user, even when no code was changed or the first review had no findings. This final check confirms the final scope and report/checkpoint finalization; a second broad search is not required.
+6. Apply only reviewed report/checkpoint finalization, ensuring tracked report changes passed the required review. Brief the user on outcome, findings and resolutions, verification evidence, deferred findings, and risks, and link the relevant PR record and Issue index. **Stop and request explicit user approval to commit this subtask.**
+7. After approval, verify that the proposed staged diff matches the reviewed and approved changes; stage only those changes and create the local commit using the Git Rules. Do not include unrelated or unreviewed work.
+8. Record the approved commit SHA in the checkpoint under the global `status.md` rules, queue it for the next cohesive reviewed tracked-report update, and report the SHA to the user; then stop and obtain explicit approval before starting the next subtask.
+
+##### 6.3.2 Final Issue Review
+
+After all subtasks are approved and committed:
+
+1. Run applicable Issue-level and integration validation across the combined changes.
+2. Have Claude Code run `/compound-engineering:ce-code-review mode:agent depth:full base:<issue-start-sha>` against the complete Issue diff, using the Issue, U-IDs, approved plans, design, and project guardrails. Apply the execution, completion, artifact, and session rules above.
+3. Codex verifies findings, using the diagnosis-only `/ce-debug` path above before fixes when the root cause is unclear. Fix P0/P1 issues; handle P2/P3 findings as in the subtask review policy. Revalidate and obtain native `/code-review high` re-review of the final changes and all dispositions before requesting approval to commit the final-review fixes.
+4. **Stop and request explicit user approval before each final-review fix commit.** Commit only reviewed and approved changes, and recheck for remaining blockers.
+5. Run `/ce-compound` for reusable, non-trivial learning; skip trivial or duplicate documentation. If it changes files, obtain native `/code-review high` review, validate those changes, request approval, and commit them before the PR gate. Do not allow this skill to auto-commit or push.
+6. Record final review coverage, resolved and deferred findings, verification evidence, remaining risks, and `/ce-compound` results in the relevant PR records. Keep a short complete Issue review status and links in the Issue index. Obtain native `/code-review high` review of the final record/index/checkpoint changes and exact-change commit approval before the PR gate, including when the complete Issue CE review has no findings.
+
+The final Issue review is required even when every subtask passed its own review.
 
 #### 6.4 Handoff and Merge
 
-Provide a concise approval report with:
+After the final Issue review, give the user a handoff following the global Issue Reporting requirements. This is a user-facing report, not text to copy wholesale into the PR. Include:
 
-- Completed outcome and U-IDs
-- Three to five files or functions to review first, with their responsibilities and important invariants
-- Main changes grouped by responsibility
-- Red/Green evidence and summarized validation results
-- E2E, browser QA, design-fidelity, and UI-audit results when applicable
-- Review findings, fixes, deferred findings, and remaining risks
+- Completed outcomes and requirement IDs; three to five files/functions to inspect with their responsibilities and important conditions; main changes grouped by responsibility
+- Red/Green evidence and summarized verification, including E2E, authorization/concurrency checks, browser QA, Figma comparison and UI audit results when applicable; clearly mark checks not run
+- Subtasks and their approved commit SHAs
+- Subtask and final Claude review results, findings and dispositions, coverage, and reviewed base and head SHAs
+- Claude review session names, IDs, and resume commands for the local handoff only; exclude these and private paths from the PR
 - `/ce-compound` result
+- Links to the relevant PR record and Issue index for user review; keep local-only information out of the PR description
 
-Stop and request approval. Do not paste full successful logs or rely on the CLI transcript as the sole durable record.
+Ensure all changes intended for the PR have passed the required review, validation, and commit approval gates. Uncommitted or unreviewed source, report, or configuration changes block PR creation. The sole post-commit checkpoint exception below preserves a clean tree for approved publication or approved post-merge branch preparation without adding a status-only commit.
 
-After approval, run `/ce-commit-push-pr` to push and create or update the PR. Preserve the detailed implementation and verification record in the PR description. Do not merge automatically.
+If the only remaining change is a verified agent-owned post-commit `status.md` checkpoint, save and hash an exact copy in an Issue-owned ignored temporary artifact outside directories scheduled for cleanup. Temporarily restore only `status.md` from the approved HEAD without staging or committing it, then verify the approved range and fully clean working tree before the approved publication or post-merge branch preparation. In a `finally` path on success or failure, restore the saved checkpoint and refresh it with verified operation results and the actual current branch; verify restoration before deleting the backup. Do not clean up outstanding checkpoint backups, use this procedure for other files or unverified edits, or discard the only copy. Batch the restored checkpoint into the next cohesive reviewed commit under the global status rules.
 
-After explicit PR approval, use `Rebase and merge`. Then brief the next Issue and wait for approval before starting it.
+Stop and request explicit approval to create the PR. Do not paste full successful logs or rely on the CLI transcript as the sole durable record.
+
+After approval, verify the approved commit range and clean working tree, then run `/ce-commit-push-pr babysit:off archive:off` to push and create or update the PR. Do not allow the skill to create additional commits or modify unapproved changes. Write the PR description in English with its own implementation and verification summary. Link both the relevant `docs/issue-reports/issue-<number>/<sequence>-<scope>.md` and Issue index at the approved PR head commit. Verify that both files exist in that pushed commit; do not link to ignored local reports or substitute document links for the required PR summary. For an approved multi-PR Issue, each PR includes its own record; publish other records only when they exist in that reviewed commit. Do not merge automatically.
+
+Treat recorded subtask SHAs as local/PR-history review references; they may differ from the commits on `main` after Rebase and merge. Preserve the reviewed PR head and PR URL in the PR description. After merge, verify the actual merge-result SHA and refresh `status.md` with that result and PR URL; preserve the reviewed head and merge event in the PR. The merged PR record retains the approved PR-head evidence, while the PR merge event and checkpoint record the actual merge result; no later Issue commit is required solely to synchronize report SHAs. Do not rewrite approved commits merely to synchronize report SHAs.
+
+After explicit merge approval, use `Rebase and merge`. For an approved multi-PR Issue, use `Refs #<number>` on intermediate PRs and reserve `Closes #<number>` for the final PR that satisfies the whole Issue. Keep the Issue open and prepare the next approved scope from the updated main, after its separate start approval. Recheck the reconstructed PR diff with applicable validation and independent review; earlier review of the original branch does not prove the intermediate PR works. Preserve the required complete Issue CE review and follow the approved delivery order in the tracked Issue index; Issue #8 requires finishing its interrupted complete Issue CE before publishing the split PRs. After the final PR, brief the next Issue and wait for approval before starting it.
 
 ### Stage 7: MVP Completion
 
@@ -206,8 +287,8 @@ After all planned MVP Issues are merged:
 
 1. Apply the Validation Policy to the full MVP and all critical flows.
 2. Run `/impeccable audit` across the implemented UI and compare it with the approved designs.
-3. Fix clear in-scope findings, revalidate, and use `/impeccable polish` only if necessary.
-4. Run `/ce-code-review` against the original requirements, design, and implementation plan.
+3. Report findings and scope any required fixes. Obtain approval and update affected plans or designs when necessary, create follow-up Issues through Stage 5, and deliver fixes through Stage 6 rather than modifying `main` directly. All Stage 7 remediation changes, including plan, design, and report documents, require independent Claude review and explicit approval of the exact commit changes; the Stages 1–5 planning-only exception does not apply. Then rerun affected validation.
+4. Request an independent, report-only Claude Code `/compound-engineering:ce-code-review mode:agent depth:full base:<mvp-start-sha>` of the complete MVP against the original requirements, design, and implementation plan. Verify that the recorded baseline predates the first MVP implementation and that the reviewed file set covers the complete MVP; a blank diff is not complete MVP coverage. Apply the execution, completion, artifact, and session rules above; process any resulting fixes through the same review-before-commit gates.
 5. Review deferred findings and remaining risks, then produce an MVP completion report.
 
 Request approval before declaring the MVP complete.
@@ -227,9 +308,15 @@ Run `/ce-strategy` again only when the product direction, target user, core valu
 ## Git Rules
 
 - Use `git switch`, not `git checkout`.
+- Keep `docs/planning/` local-only and ignored by Git. Do not force-add its files; retain them on disk when removing existing tracking. This rule does not apply to `docs/plans/`.
+- Keep operational plans for PR splitting and merge sequencing in ignored `docs/planning/`. Do not link these plans from tracked documents or public PR descriptions. Product requirements and implementation plans remain in `docs/plans/`.
+- Apply the paths and retention in Human-Facing Result Reports: track the short Issue index and Korean PR records with related changes through normal review and approval gates; keep raw review and session artifacts Git-ignored.
 - Commit cohesive completed units using an existing Gitmoji and a capitalized Conventional Commit type.
+- Split completed work into commits by concrete task (for example, a schema addition, a UI correction, or a tooling change), rather than combining all changes for an Issue into one commit. Keep code and its directly related tests together; group inseparable dependencies so a commit preserves their contract.
+- For work tied to a GitHub Issue, end every commit title with `(#<issue-number>)`. Do not put plan U-IDs such as `(U02)` in commit titles; keep U-IDs in plans and implementation reports.
 - Name non-Issue branches `<type>/<imperative-verb>-<short-scope>` and describe the work itself instead of a workflow stage or stage number.
 - For Issue branches, use `<type>/<issue-number>-<imperative-verb>-<short-scope>`.
 - Do not push, create a PR, or merge without explicit user approval.
 - This is a solo project. Do not run `ce-babysit-pr` or otherwise monitor a Pull Request unless the user explicitly requests monitoring in the current turn. After creating or updating a Pull Request, report it immediately and wait for user review.
 - Use `Rebase and merge` by default. Do not choose another merge strategy without explicit approval.
+- Keep approved subtask commits local until final Issue review and the separate PR approval gate. Do not amend, squash, or rewrite reviewed commits without explicit approval and any required re-review.

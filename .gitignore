@@ -16,6 +16,7 @@ blob-report/
 *.tsbuildinfo
 
 # Local tool state
+/tools/figma-pretendard-refresh/
 .agents/
 .railway/
 .vercel/
@@ -26,3 +27,9 @@ blob-report/
 
 # Private project material
 /docs/private/
+
+# Local planning notes
+/docs/planning/
+
+# Private Caddy data
+/docker/preview/local-ca.crt
