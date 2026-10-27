@@ -12,12 +12,18 @@ import { AuthRateLimitExceededError } from "#api/modules/auth/rate-limit";
 import {
   authenticatePassword,
   completeSignup,
+  exchangePasswordResetToken,
   getAuthenticatedUser,
+  requestPasswordReset,
+  resetPassword,
   revokeSession,
 } from "#api/modules/auth/service";
 import {
+  clearPasswordResetCookie,
   clearSessionCookie,
+  passwordResetCookieName,
   serializeAccountLinkCookie,
+  serializePasswordResetCookie,
   serializeSessionCookie,
   sessionCookieName,
 } from "#api/modules/auth/session";
@@ -55,6 +61,29 @@ const errorSchema = {
   properties: {
     code: { type: "string" },
     message: { type: "string" },
+  },
+} as const;
+const acceptedSchema = {
+  type: "object",
+  additionalProperties: false,
+  required: ["status"],
+  properties: { status: { type: "string", const: "accepted" } },
+} as const;
+const acceptedEmailSchema = {
+  ...acceptedSchema,
+  required: ["status", "rateLimit"],
+  properties: {
+    ...acceptedSchema.properties,
+    rateLimit: {
+      type: "object",
+      additionalProperties: false,
+      required: ["limit", "remaining", "retryAfterSeconds"],
+      properties: {
+        limit: { type: "integer", minimum: 1 },
+        remaining: { type: "integer", minimum: 0 },
+        retryAfterSeconds: { type: "integer", minimum: 1 },
+      },
+    },
   },
 } as const;
 const userSchema = {
@@ -98,6 +127,14 @@ const tokenBodySchema = {
   required: ["token"],
   properties: {
     token: { type: "string", minLength: 20, maxLength: 256 },
+  },
+} as const;
+const passwordBodySchema = {
+  type: "object",
+  additionalProperties: false,
+  required: ["password"],
+  properties: {
+    password: newPasswordProperty,
   },
 } as const;
 const rateLimitSchema = {
@@ -154,6 +191,28 @@ const passwordLoginResponseSchema = {
 const noContentWithCookieSchema = {
   type: "null",
   headers: setCookieHeader,
+} as const;
+const resetSessionSchema = {
+  type: "object",
+  additionalProperties: false,
+  required: ["expiresAt"],
+  properties: { expiresAt: { type: "string", format: "date-time" } },
+  headers: {
+    "Set-Cookie": {
+      description: "Secure __Host-password-reset cookie",
+      type: "string",
+    },
+  },
+} as const;
+const noContentWithClearedCookiesSchema = {
+  type: "null",
+  headers: {
+    "Set-Cookie": {
+      description: "Cleared login and password-reset cookies",
+      type: "array",
+      items: { type: "string" },
+    },
+  },
 } as const;
 
 export const registerAuthRoutes: FastifyPluginAsync<AuthRoutesOptions> = async (
@@ -535,6 +594,114 @@ export const registerAuthRoutes: FastifyPluginAsync<AuthRoutesOptions> = async (
       return user ? reply.send(user) : unauthorized(reply);
     },
   );
+
+  for (const [action, resend] of [
+    ["request", false],
+    ["resend", true],
+  ] as const) {
+    server.post<{ Body: { email: string } }>(
+      `/auth/password-reset/${action}`,
+      {
+        schema: {
+          operationId: resend
+            ? "resendPasswordResetEmail"
+            : "requestPasswordReset",
+          headers: originHeadersSchema,
+          body: emailBodySchema,
+          response: {
+            202: acceptedEmailSchema,
+            400: errorSchema,
+            403: errorSchema,
+            429: rateLimitSchema,
+            500: errorSchema,
+          },
+        },
+      },
+      async (request, reply) => {
+        const startedAt = performance.now();
+        const rateLimit = await requestPasswordReset(
+          options.database,
+          request.body.email,
+          request.clientAddress,
+          { ...mutationOptions, resend },
+        );
+        await waitForAnonymousResponseFloor(startedAt);
+        return reply.code(202).send({ status: "accepted", rateLimit });
+      },
+    );
+  }
+
+  server.post<{ Body: { token: string } }>(
+    "/auth/password-reset/session",
+    {
+      schema: {
+        operationId: "exchangePasswordResetToken",
+        headers: originHeadersSchema,
+        body: tokenBodySchema,
+        response: {
+          200: resetSessionSchema,
+          400: errorSchema,
+          403: errorSchema,
+          500: errorSchema,
+        },
+      },
+    },
+    async (request, reply) => {
+      const session = await exchangePasswordResetToken(
+        options.database,
+        request.body.token,
+      );
+      if (!session) {
+        return reply.code(400).send({
+          code: "invalid_or_expired_token",
+          message: "유효하지 않거나 만료된 재설정 링크입니다.",
+        });
+      }
+      return reply
+        .header("set-cookie", serializePasswordResetCookie(session.rawToken))
+        .send({ expiresAt: session.expiresAt.toISOString() });
+    },
+  );
+
+  server.post<{ Body: { password: string } }>(
+    "/auth/password-reset/confirm",
+    {
+      schema: {
+        operationId: "confirmPasswordReset",
+        security: [{ passwordResetCookie: [] }],
+        headers: originHeadersSchema,
+        body: passwordBodySchema,
+        response: {
+          204: noContentWithClearedCookiesSchema,
+          400: errorSchema,
+          403: errorSchema,
+          500: errorSchema,
+        },
+      },
+    },
+    async (request, reply) => {
+      const resetSession = readCookie(
+        request.headers.cookie,
+        passwordResetCookieName,
+      );
+      if (!resetSession.token || resetSession.invalid) {
+        return invalidResetSession(reply);
+      }
+      const reset = await resetPassword(
+        options.database,
+        resetSession.token,
+        request.body.password,
+      );
+      if (!reset) return invalidResetSession(reply);
+      return reply
+        .header("set-cookie", [
+          clearSessionCookie(),
+          clearPasswordResetCookie(),
+        ])
+        .code(204)
+        .send();
+    },
+  );
 };
 
 const unauthorized = (reply: FastifyReply, clearCookie = true) => {
@@ -573,6 +740,13 @@ const readCookie = (
   } catch {
     return { invalid: true };
   }
+};
+
+const invalidResetSession = (reply: FastifyReply) => {
+  return reply.header("set-cookie", clearPasswordResetCookie()).code(400).send({
+    code: "invalid_or_expired_reset_session",
+    message: "재설정 시간이 만료되었습니다. 새 링크를 요청해 주세요.",
+  });
 };
 
 const waitForAnonymousResponseFloor = async (startedAt: number) => {
