@@ -7,9 +7,13 @@ import {
   type PasswordLoginAttempt,
 } from "#api/modules/auth/login-rate-limit";
 import { hashPassword, verifyPassword } from "#api/modules/auth/password";
-import { consumeAuthRateLimit } from "#api/modules/auth/rate-limit";
+import {
+  type AuthRateLimitResult,
+  consumeAuthRateLimit,
+} from "#api/modules/auth/rate-limit";
 import {
   accountLinkSessionLifetimeMs,
+  createPasswordResetSession,
   createSession,
 } from "#api/modules/auth/session";
 import { lockSignupEmail } from "#api/modules/auth/signup-challenge";
@@ -577,6 +581,186 @@ export const getAuthenticatedUser = async (
   return result.rows[0];
 };
 
+export const requestPasswordReset = async (
+  database: AuthPool,
+  email: string,
+  clientAddress: string,
+  options: AuthMutationOptions & { resend?: boolean },
+  clock: AuthClock = () => new Date(),
+): Promise<AuthRateLimitResult> => {
+  const normalizedEmail = normalizeEmail(email);
+  const rateLimit = await consumeAuthRateLimit(
+    database,
+    options.resend ? "password_reset_resend" : "password_reset",
+    clientAddress,
+    normalizedEmail,
+    options.rateLimitSecret,
+    readAuthClock(clock),
+  );
+
+  await inTransaction(database, async (client) => {
+    const userId = await lockUserByEmail(client, normalizedEmail);
+    const issuedAt = readAuthClock(clock);
+    const token = createAuthToken(
+      "password_reset",
+      options.authTokenSecret,
+      issuedAt,
+    );
+    await client.query(
+      `WITH candidate AS MATERIALIZED (
+         SELECT users.id
+           FROM users
+           JOIN auth_identities AS identity
+             ON identity.user_id = users.id AND identity.provider = 'password'
+          WHERE users.email = $1 AND users.id = $8 AND users.email_verified_at IS NOT NULL
+       ), superseded AS (
+         UPDATE auth_tokens
+            SET consumed_at = $6
+          WHERE user_id IN (SELECT id FROM candidate)
+            AND purpose IN ('password_reset', 'password_reset_session')
+            AND consumed_at IS NULL
+            AND expires_at > $6
+         RETURNING id
+       ), failed AS (
+         UPDATE email_outbox
+            SET status = 'failed',
+                last_error_code = 'superseded',
+                updated_at = $6
+          WHERE token_id IN (SELECT id FROM superseded)
+            AND status = 'pending'
+            AND attempt_count = 0
+         RETURNING token_id
+       ), inserted AS (
+         INSERT INTO auth_tokens
+           (id, user_id, purpose, token_hash, created_at, expires_at)
+         SELECT $2, candidate.id, 'password_reset', $3, $4, $5
+           FROM candidate
+          WHERE (SELECT count(*) FROM failed) >= 0
+         RETURNING id
+       )
+       INSERT INTO email_outbox (token_id, token_key_id, created_at, updated_at)
+       SELECT id, $7, $4, $4 FROM inserted`,
+      [
+        normalizedEmail,
+        token.id,
+        token.tokenHash,
+        token.createdAt,
+        token.expiresAt,
+        issuedAt,
+        authTokenKeyId(options.authTokenSecret),
+        userId,
+      ],
+    );
+  });
+  return rateLimit;
+};
+
+export const exchangePasswordResetToken = async (
+  database: AuthPool,
+  rawToken: string,
+  clock: () => Date = () => new Date(),
+): Promise<PasswordResetSession | undefined> => {
+  const tokenHash = hashOpaqueToken(rawToken);
+  const checkedAt = clock();
+  const candidate = await database.query<{ userId: string }>(
+    `SELECT user_id::text AS "userId"
+       FROM auth_tokens
+      WHERE purpose = 'password_reset'
+        AND token_hash = $1
+        AND consumed_at IS NULL
+        AND expires_at > $2`,
+    [tokenHash, checkedAt],
+  );
+  if (!candidate.rows[0]) return undefined;
+
+  return inTransaction(database, async (client) => {
+    await client.query("SELECT id FROM users WHERE id = $1 FOR UPDATE", [
+      candidate.rows[0]!.userId,
+    ]);
+    const exchangedAt = clock();
+    const consumed = await client.query<{ userId: string }>(
+      `UPDATE auth_tokens
+          SET consumed_at = $3
+        WHERE purpose = 'password_reset'
+          AND token_hash = $2
+          AND user_id = $1
+          AND consumed_at IS NULL
+          AND expires_at > $3
+      RETURNING user_id::text AS "userId"`,
+      [candidate.rows[0]!.userId, tokenHash, exchangedAt],
+    );
+    if (!consumed.rows[0]) return undefined;
+
+    const session = createPasswordResetSession(exchangedAt);
+    await client.query(
+      `INSERT INTO auth_tokens
+         (user_id, purpose, token_hash, created_at, expires_at)
+       VALUES ($1, 'password_reset_session', $2, $3, $4)`,
+      [
+        consumed.rows[0].userId,
+        session.tokenHash,
+        session.createdAt,
+        session.expiresAt,
+      ],
+    );
+    return { expiresAt: session.expiresAt, rawToken: session.rawToken };
+  });
+};
+
+export const resetPassword = async (
+  database: AuthPool,
+  rawResetSessionToken: string,
+  password: string,
+  clock: () => Date = () => new Date(),
+): Promise<boolean> => {
+  const tokenHash = hashOpaqueToken(rawResetSessionToken);
+  const checkedAt = clock();
+  const candidate = await database.query<{ userId: string }>(
+    `SELECT user_id::text AS "userId"
+       FROM auth_tokens
+      WHERE purpose = 'password_reset_session'
+        AND token_hash = $1
+        AND consumed_at IS NULL
+        AND expires_at > $2`,
+    [tokenHash, checkedAt],
+  );
+  if (!candidate.rows[0]) return false;
+
+  const passwordHash = await hashPassword(password);
+  return inTransaction(database, async (client) => {
+    await client.query("SELECT id FROM users WHERE id = $1 FOR UPDATE", [
+      candidate.rows[0]!.userId,
+    ]);
+    const updatedAt = clock();
+    const token = await client.query<{ userId: string }>(
+      `UPDATE auth_tokens
+          SET consumed_at = $3
+        WHERE purpose = 'password_reset_session'
+          AND token_hash = $2
+          AND user_id = $1
+          AND consumed_at IS NULL
+          AND expires_at > $3
+      RETURNING user_id::text AS "userId"`,
+      [candidate.rows[0]!.userId, tokenHash, updatedAt],
+    );
+    if (!token.rows[0]) return false;
+
+    await client.query(
+      `UPDATE auth_identities
+          SET password_hash = $2, updated_at = $3
+        WHERE user_id = $1 AND provider = 'password'`,
+      [token.rows[0].userId, passwordHash, updatedAt],
+    );
+    await client.query(
+      `UPDATE auth_sessions
+          SET revoked_at = $2
+        WHERE user_id = $1 AND revoked_at IS NULL`,
+      [token.rows[0].userId, updatedAt],
+    );
+    return true;
+  });
+};
+
 const issueAccountLinkSession = async (
   database: AuthDatabase,
   userId: string,
@@ -606,6 +790,17 @@ const issueAccountLinkSession = async (
 
 const readAuthClock = (clock: AuthClock): Date => {
   return clock instanceof Date ? clock : clock();
+};
+
+const lockUserByEmail = async (
+  client: PoolClient,
+  email: string,
+): Promise<string | null> => {
+  const result = await client.query<{ id: string }>(
+    "SELECT id FROM users WHERE email = $1 FOR UPDATE",
+    [email],
+  );
+  return result.rows[0]?.id ?? null;
 };
 
 const lockGoogleIdentityChanges = async (database: AuthDatabase) => {

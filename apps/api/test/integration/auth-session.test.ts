@@ -1,4 +1,5 @@
 import { expect, it } from "vitest";
+
 import { migrateDatabase } from "#api/db/migrations";
 import {
   authenticateSession,

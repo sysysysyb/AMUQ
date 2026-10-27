@@ -1,11 +1,11 @@
 # Workflow Status
 
-> Updated: 2026-10-27 15:17 KST
+> Updated: 2026-10-27 15:18 KST
 
 ## Current state
 
 - Status: in progress
-- Stage: Stage 6 — Issue #8 / PR2 일괄 재구성 7/17 후보 검증 완료, 로컬 커밋 진행
+- Stage: Stage 6 — Issue #8 / PR2 일괄 재구성 8/17 후보 검증 완료, 로컬 커밋 진행
 
 ## Active work
 
@@ -17,8 +17,8 @@
 
 ## Current checkpoint
 
-- Last completed: 비밀번호 로그인과 세션 접근 중간 상태 검증. 직전 재구성 커밋 `3d49830`
-- Latest verification: 타입, 단위 104개, 해당 DB 통합 36개와 린트 — passed
+- Last completed: 비밀번호 재설정 중간 상태 검증. 직전 재구성 커밋 `90ab65a`
+- Latest verification: 타입, 단위 113개, 해당 DB 통합 14개와 린트 — passed
 
 ## Review focus
 

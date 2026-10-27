@@ -30,6 +30,38 @@ afterEach(async () => {
 });
 
 describe("authentication HTTP boundary", () => {
+  it("enforces the new password policy before signup or reset can touch the database", async () => {
+    const query = vi.fn();
+    const connect = vi.fn();
+    const server = await createServer({ query, connect } as unknown as Pool);
+    for (const password of [
+      "Abcdef12345", // 11 characters
+      "Abcdef123456789012345", // 21 characters
+      "lowercase1234",
+      "UPPERCASE1234",
+      "MixedCaseOnly",
+      "😀".repeat(12),
+    ]) {
+      for (const url of [
+        "/auth/signup/complete",
+        "/auth/password-reset/confirm",
+      ]) {
+        const response = await server.inject({
+          method: "POST",
+          url,
+          headers: { origin: "https://web.example" },
+          payload: url.endsWith("/complete")
+            ? { signupProof: "a".repeat(64), password }
+            : { password },
+        });
+        expect(response.statusCode, `${url}: ${password}`).toBe(400);
+        expect(response.json().code).toBe("invalid_request");
+      }
+    }
+    expect(query).not.toHaveBeenCalled();
+    expect(connect).not.toHaveBeenCalled();
+  });
+
   it("requires a configured exact Origin and keeps validation errors private", async () => {
     const server = await createServer();
     const body = {
@@ -97,6 +129,25 @@ describe("authentication HTTP boundary", () => {
       "__Host-session=; Max-Age=0",
     );
     expect(response.headers["cache-control"]).toBe("no-store");
+  });
+
+  it("requires a valid password-reset session cookie to confirm a reset", async () => {
+    const server = await createServer();
+    const response = await server.inject({
+      method: "POST",
+      url: "/auth/password-reset/confirm",
+      headers: { origin: "https://web.example" },
+      payload: { password: "NewValidPass1234" },
+    });
+
+    expect(response.statusCode).toBe(400);
+    expect(response.json()).toEqual({
+      code: "invalid_or_expired_reset_session",
+      message: "재설정 시간이 만료되었습니다. 새 링크를 요청해 주세요.",
+    });
+    expect(response.headers["set-cookie"]).toContain(
+      "__Host-password-reset=; Max-Age=0",
+    );
   });
 
   it("revokes the server session and expires the browser cookie on logout", async () => {
