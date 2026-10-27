@@ -8,6 +8,76 @@
       "when": 1790084777159,
       "tag": "0000_baseline",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1790434004845,
+      "tag": "0001_legal_norman_osborn",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1790494826691,
+      "tag": "0002_empty_master_mold",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1790522434283,
+      "tag": "0003_amazing_tempest",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1790666385086,
+      "tag": "0004_narrow_centennial",
+      "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1790918107955,
+      "tag": "0005_fat_black_queen",
+      "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1791111547366,
+      "tag": "0006_optimal_spitfire",
+      "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1791528789679,
+      "tag": "0007_rapid_frog_thor",
+      "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1792069862517,
+      "tag": "0008_productive_wallflower",
+      "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1792553872368,
+      "tag": "0009_zippy_wraith",
+      "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1792582388673,
+      "tag": "0010_signup_challenges",
+      "breakpoints": true
     }
   ]
 }

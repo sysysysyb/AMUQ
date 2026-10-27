@@ -4,7 +4,7 @@ import {
   createDatabasePool,
   databaseUrl,
   pgBossDatabaseOptions,
-} from "./database.js";
+} from "#api/db/database";
 
 describe("database configuration", () => {
   it("requires DATABASE_URL before starting a database process", () => {

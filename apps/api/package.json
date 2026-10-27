@@ -4,6 +4,7 @@
   "version": "0.0.0",
   "type": "module",
   "imports": {
+    "#api-test/*": "./test/*.ts",
     "#api/*": {
       "types": "./src/*.ts",
       "development": "./src/*.ts",
@@ -13,7 +14,7 @@
   "scripts": {
     "build": "tsc -p tsconfig.build.json",
     "db:check": "node --conditions=development --env-file-if-exists=../../.env --experimental-strip-types src/db/check.ts",
-    "db:generate": "drizzle-kit generate --config drizzle.config.ts",
+    "db:generate": "node --conditions=development ./node_modules/drizzle-kit/bin.cjs generate --config drizzle.config.ts",
     "db:migrate": "node --conditions=development --env-file-if-exists=../../.env --experimental-strip-types src/db/migrate.ts",
     "dev": "node --conditions=development --env-file-if-exists=../../.env --watch --experimental-strip-types src/http/index.ts",
     "dev:worker": "node --conditions=development --env-file-if-exists=../../.env --watch --experimental-strip-types src/worker.ts",

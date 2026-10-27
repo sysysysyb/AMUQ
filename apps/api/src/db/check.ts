@@ -2,7 +2,7 @@ import {
   assertDatabaseSchema,
   createDatabasePool,
   databaseUrl,
-} from "./database.ts";
+} from "#api/db/database";
 
 const connectionString = databaseUrl();
 const pool = createDatabasePool(connectionString);

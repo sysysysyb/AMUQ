@@ -3,23 +3,23 @@ import { migrate } from "drizzle-orm/node-postgres/migrator";
 import { PgBoss } from "pg-boss";
 
 import {
-  assertPgBossMigrationsComplete,
   assertDatabaseSchema,
+  assertPgBossMigrationsComplete,
   createDatabasePool,
   pgBossDatabaseOptions,
   type QueryClient,
-} from "./database.ts";
-import { migrationConfig } from "./migration-config.ts";
+} from "#api/db/database";
+import { migrationConfig } from "#api/db/migration-config";
 
 const migrationLockName = "amuq:migrations";
 const migrationTimeoutMs = 15 * 60 * 1_000;
 
-export async function runMigrationSteps(
+export const runMigrationSteps = async (
   client: QueryClient,
   migrateDrizzle: () => Promise<unknown>,
   migratePgBoss: () => Promise<unknown>,
   verify: () => Promise<unknown>,
-): Promise<void> {
+): Promise<void> => {
   await client.query("SELECT pg_advisory_lock(hashtext($1))", [
     migrationLockName,
   ]);
@@ -33,9 +33,11 @@ export async function runMigrationSteps(
       migrationLockName,
     ]);
   }
-}
+};
 
-export async function migrateDatabase(connectionString: string): Promise<void> {
+export const migrateDatabase = async (
+  connectionString: string,
+): Promise<void> => {
   const pool = createDatabasePool(connectionString, migrationTimeoutMs);
   const client = await pool.connect();
 
@@ -50,9 +52,9 @@ export async function migrateDatabase(connectionString: string): Promise<void> {
     client.release();
     await pool.end();
   }
-}
+};
 
-async function migratePgBossSchema(connectionString: string): Promise<void> {
+const migratePgBossSchema = async (connectionString: string): Promise<void> => {
   const boss = new PgBoss({
     ...pgBossDatabaseOptions(connectionString, migrationTimeoutMs),
     bamIntervalSeconds: 10,
@@ -72,16 +74,16 @@ async function migratePgBossSchema(connectionString: string): Promise<void> {
   } finally {
     await boss.stop({ graceful: false });
   }
-}
+};
 
 type PgBossMigrationProbe = Pick<PgBoss, "getBamStatus" | "isBamWorking">;
 
-export async function waitForPgBossMigrations(
+export const waitForPgBossMigrations = async (
   boss: PgBossMigrationProbe,
   pause: () => Promise<void> = async () =>
     new Promise((resolve) => setTimeout(resolve, 100)),
   timeoutMs = migrationTimeoutMs,
-): Promise<void> {
+): Promise<void> => {
   let timeout: ReturnType<typeof setTimeout>;
   const timedOut = new Promise<never>((_, reject) => {
     timeout = setTimeout(
@@ -108,4 +110,4 @@ export async function waitForPgBossMigrations(
   } finally {
     clearTimeout(timeout!);
   }
-}
+};

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { assertTestDatabaseUrl } from "./test-database.js";
+import { assertTestDatabaseUrl } from "#api-test/support/test-database";
 
 describe("test database safety", () => {
   it("accepts the dedicated disposable database", () => {
