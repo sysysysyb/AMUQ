@@ -139,6 +139,12 @@ describe("Google OIDC", () => {
       ["unverified email", { email_verified: false }, invalidIdentity],
       ["missing email", { email: undefined }, invalidIdentity],
       ["empty email", { email: "" }, invalidIdentity],
+      ["whitespace-only email", { email: "   " }, invalidIdentity],
+      [
+        "email containing only mixed whitespace",
+        { email: " \t\r\n\u00a0" },
+        invalidIdentity,
+      ],
       ["missing subject", { sub: undefined }, invalidIdentity],
       ["empty subject", { sub: "" }, invalidIdentity],
       [
@@ -165,6 +171,26 @@ describe("Google OIDC", () => {
         ).rejects.toThrow(expectedMessage);
       },
     );
+
+    it("normalizes a verified email without changing the subject", async () => {
+      const token = await signedIdToken(
+        privateKey,
+        { aud: config.clientId, nonce: "nonce" },
+        { email: " \tPerson@Example.COM\r\n" },
+      );
+
+      await expect(
+        verifyGoogleIdToken(
+          token,
+          config.clientId,
+          hashOpaqueToken("nonce"),
+          keySet,
+        ),
+      ).resolves.toEqual({
+        email: "person@example.com",
+        subject: "google-123",
+      });
+    });
 
     it("rejects a token with the wrong audience or nonce", async () => {
       const wrongAudience = await signedIdToken(privateKey, {
