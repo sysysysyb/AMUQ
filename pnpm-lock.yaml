@@ -46,18 +46,27 @@ importers:
       "@fastify/swagger-ui":
         specifier: 5.2.6
         version: 5.2.6
+      argon2:
+        specifier: 0.45.1
+        version: 0.45.1
       drizzle-orm:
         specifier: 0.45.3
         version: 0.45.3(@types/pg@8.23.1)(pg@8.23.0)
       fastify:
         specifier: 5.12.5
         version: 5.12.5
+      jose:
+        specifier: 6.2.12
+        version: 6.2.12
       pg:
         specifier: 8.23.0
         version: 8.23.0
       pg-boss:
         specifier: 12.33.3
         version: 12.33.3
+      svix:
+        specifier: 2.8.0
+        version: 2.8.0
     devDependencies:
       "@types/pg":
         specifier: 8.23.1
@@ -91,6 +100,12 @@ packages:
     resolution:
       {
         integrity: sha512-Xz4Tpyki7XyrpbUK1jR1AhdAdaXyhhY4lZ3neLodmhpuWfy2PAQN5B46sAiU4liOXGLkHypn/qU+jvfWSCYYLA==,
+      }
+
+  "@epic-web/invariant@1.0.0":
+    resolution:
+      {
+        integrity: sha512-lrTPqgvfFQtR/eY/qkIzp98OGdNJu0m5ji3q/nJI8v3SXkRKEnWiOxMmbvcSoAIzv/cGiuvRy57k4suKQSAdwA==,
       }
 
   "@esbuild-kit/core-utils@3.3.2":
@@ -1296,6 +1311,13 @@ packages:
         integrity: sha512-rDS5/31E9HfPl/CIzGrn0DOlvBbXFseQ5URJ9sYMfstbKLD/c6Gm9vmRzRGDdAXyOIL4zmO37lc9RIwYqVruZw==,
       }
 
+  "@phc/format@1.0.0":
+    resolution:
+      {
+        integrity: sha512-m7X9U6BG2+J+R1lSOdCiITLLrxm+cWlNI3HUFA92oLO77ObGNzaKdh8pMLqdZcshtkKuV84olNNXDfMc4FezBQ==,
+      }
+    engines: { node: ">=10" }
+
   "@pinojs/redact@0.4.0":
     resolution:
       {
@@ -1455,6 +1477,12 @@ packages:
     resolution:
       {
         integrity: sha512-2j9bGt5Jh8hj+vPtgzPtl72j0yRxHAyumoo6TNfAjsLB04UtpSvPbPcDcBMxz7n+9CYB0c1GxQFxYRg2jimqGw==,
+      }
+
+  "@stablelib/base64@1.0.1":
+    resolution:
+      {
+        integrity: sha512-1bnPQqSxSuc3Ii6MhBysoWCg58j97aUjuCSZrGSmDxNqtytIi0k8utUenAwTZN4V5mXXYGsVUI9zeBqy+jBOSQ==,
       }
 
   "@swc/helpers@0.5.23":
@@ -1674,6 +1702,13 @@ packages:
       }
     engines: { node: ">=8" }
 
+  argon2@0.45.1:
+    resolution:
+      {
+        integrity: sha512-skm+/WCjkGqCQxF7FG1LuZXM5yvbFjgbfiCGsud2oLgaDhh6b6dbH0b1EkghbM+xx4Bj8Ape+KKgixoIlWZicQ==,
+      }
+    engines: { node: ">=16.17.0" }
+
   argparse@2.0.1:
     resolution:
       {
@@ -1812,6 +1847,14 @@ packages:
         integrity: sha512-pKRrRagItwk9rGIStcUyMxFX34x56zoX3KDf9HJ4ttwkXIK1qxK63EvXvEDmlxI9AdPJ+Y7TEKRftRlW5eSS7A==,
       }
     engines: { node: ">=18" }
+
+  cross-env@10.1.0:
+    resolution:
+      {
+        integrity: sha512-GsYosgnACZTADcmEyJctkJIoqAhHjttw7RsFrVoJNXbsWWqaq6Ym+7kZjq6mS45O0jij6vtiReppKQEtqWy6Dw==,
+      }
+    engines: { node: ">=20" }
+    hasBin: true
 
   cross-spawn@7.0.6:
     resolution:
@@ -2139,6 +2182,12 @@ packages:
         integrity: sha512-g6KuKWmFXc0fID8WWH0jit4g0AGBoJhCkJMb1RmbsSEUNvQ+ZC8D6CUZ+GtF8nMzSPXnhiePyyqqipzNNEnHjg==,
       }
 
+  fast-sha256@1.3.0:
+    resolution:
+      {
+        integrity: sha512-n11RGP/lrWEFI/bWdygLxhI+pVeo1ZYIVwvvPkW7azl/rOy+F3HYRZ2K5zeE9mmkhQppyv9sQFx0JM9UabnpPQ==,
+      }
+
   fast-uri@3.1.8:
     resolution:
       {
@@ -2329,6 +2378,12 @@ packages:
     resolution:
       {
         integrity: sha512-RHxMLp9lnKHGHRng9QFhRCMbYAcVpn69smSGcq3f36xjgVVWThj4qqLbTLlq7Ssj8B+fIQ1EuCEGI2lKsyQeIw==,
+      }
+
+  jose@6.2.12:
+    resolution:
+      {
+        integrity: sha512-9NiFmJEex0sy2Dk58j2UGBSHgUs2ypF9eZSu4L6vjOX3Dp96Sw1F3uL+H+D1sx02jZZdzUT0HgvCy59CuvXcWw==,
       }
 
   js-yaml@4.3.2:
@@ -2608,6 +2663,20 @@ packages:
         optional: true
       sass:
         optional: true
+
+  node-addon-api@8.9.2:
+    resolution:
+      {
+        integrity: sha512-VijLXbi3UACN69I0JVXJsX4tjACjNoQDgv2gTF6sx2wWEi8tkSg2eX8p5gSIFi8z2+DL3oHmY6OyKce38SDolg==,
+      }
+    engines: { node: ^18 || ^20 || >= 21 }
+
+  node-gyp-build@4.8.4:
+    resolution:
+      {
+        integrity: sha512-LA4ZjwlnUblHVgq0oBF3Jl/6h/Nvs5fzBLwdEF4nuxnFdsfajde4WfxtJr3CaiH+F6ewcIB/q4jQ4UzPyid+CQ==,
+      }
+    hasBin: true
 
   non-error@0.1.0:
     resolution:
@@ -3087,6 +3156,12 @@ packages:
         integrity: sha512-1XMJE5fQo1jGH6Y/7ebnwPOBEkIEnT4QF32d5R1+VXdXveM0IBMJt8zfaxX1P3QhVwrYe+576+jkANtSS2mBbw==,
       }
 
+  standardwebhooks@1.1.1:
+    resolution:
+      {
+        integrity: sha512-bCbX9ZEyFkWPsRz7Bl3NuQUJohmwGSev/yhr7vhaGPlc4AfIrspIRa6cPTBuI1ItmrTDJ4d/S2hCsfe4+vQGnQ==,
+      }
+
   statuses@2.0.2:
     resolution:
       {
@@ -3129,6 +3204,13 @@ packages:
         integrity: sha512-qpCAvRl9stuOHveKsn7HncJRvv501qIacKzQlO/+Lwxc9+0q2wLyv4Dfvt80/DPn2pqOBsJdDiogXGR9+OvwRw==,
       }
     engines: { node: ">=8" }
+
+  svix@2.8.0:
+    resolution:
+      {
+        integrity: sha512-3bvu4FoVP9szUn5WBXUXUs97lLVC+Jyr0+jm+Q+DVcPMLXmeoZepbmbCzJVqGDNf9i00P7WLAH6m0q9HrzH1+g==,
+      }
+    engines: { node: ">=22" }
 
   tagged-tag@1.0.0:
     resolution:
@@ -3394,6 +3476,8 @@ snapshots:
     dependencies:
       tslib: 2.8.1
     optional: true
+
+  "@epic-web/invariant@1.0.0": {}
 
   "@esbuild-kit/core-utils@3.3.2":
     dependencies:
@@ -3895,6 +3979,8 @@ snapshots:
 
   "@oxc-project/types@0.150.0": {}
 
+  "@phc/format@1.0.0": {}
+
   "@pinojs/redact@0.4.0": {}
 
   "@playwright/test@1.63.0":
@@ -3947,6 +4033,8 @@ snapshots:
     optional: true
 
   "@rolldown/pluginutils@1.0.1": {}
+
+  "@stablelib/base64@1.0.1": {}
 
   "@swc/helpers@0.5.23":
     dependencies:
@@ -4113,6 +4201,13 @@ snapshots:
     dependencies:
       color-convert: 2.0.1
 
+  argon2@0.45.1:
+    dependencies:
+      "@phc/format": 1.0.0
+      cross-env: 10.1.0
+      node-addon-api: 8.9.2
+      node-gyp-build: 4.8.4
+
   argparse@2.0.1: {}
 
   assertion-error@2.0.1: {}
@@ -4169,6 +4264,11 @@ snapshots:
   cron-parser@5.10.1:
     dependencies:
       luxon: 3.7.2
+
+  cross-env@10.1.0:
+    dependencies:
+      "@epic-web/invariant": 1.0.0
+      cross-spawn: 7.0.6
 
   cross-spawn@7.0.6:
     dependencies:
@@ -4388,6 +4488,8 @@ snapshots:
     dependencies:
       fast-decode-uri-component: 1.0.1
 
+  fast-sha256@1.3.0: {}
+
   fast-uri@3.1.8: {}
 
   fast-uri@4.2.1: {}
@@ -4495,6 +4597,8 @@ snapshots:
       is-extglob: 2.1.1
 
   isexe@2.0.0: {}
+
+  jose@6.2.12: {}
 
   js-yaml@4.3.2:
     dependencies:
@@ -4641,6 +4745,10 @@ snapshots:
       - "@babel/core"
       - "@types/node"
       - babel-plugin-macros
+
+  node-addon-api@8.9.2: {}
+
+  node-gyp-build@4.8.4: {}
 
   non-error@0.1.0: {}
 
@@ -4916,6 +5024,11 @@ snapshots:
 
   stackback@0.0.2: {}
 
+  standardwebhooks@1.1.1:
+    dependencies:
+      "@stablelib/base64": 1.0.1
+      fast-sha256: 1.3.0
+
   statuses@2.0.2: {}
 
   std-env@4.2.0: {}
@@ -4930,6 +5043,10 @@ snapshots:
   supports-color@7.2.0:
     dependencies:
       has-flag: 4.0.0
+
+  svix@2.8.0:
+    dependencies:
+      standardwebhooks: 1.1.1
 
   tagged-tag@1.0.0: {}
 
