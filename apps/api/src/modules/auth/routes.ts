@@ -4,6 +4,7 @@ import type { FastifyPluginAsync } from "fastify";
 import type { Pool } from "pg";
 import type { GoogleOidcConfig } from "#api/config/environment";
 import { type GoogleIdentity } from "#api/modules/auth/google";
+import { consumePasswordLoginIp } from "#api/modules/auth/login-rate-limit";
 import { AuthRateLimitExceededError } from "#api/modules/auth/rate-limit";
 import { completeSignup } from "#api/modules/auth/service";
 import { serializeAccountLinkCookie } from "#api/modules/auth/session";
@@ -100,7 +101,18 @@ export const registerAuthRoutes: FastifyPluginAsync<AuthRoutesOptions> = async (
 
   server.addHook("onRequest", async (request, reply) => {
     reply.header("cache-control", "no-store");
-
+    if (
+      request.method === "POST" &&
+      ["/auth/login", "/auth/link/password"].includes(
+        request.routeOptions.url ?? "",
+      )
+    ) {
+      await consumePasswordLoginIp(
+        options.database,
+        request.clientAddress,
+        options.rateLimitSecret,
+      );
+    }
     if (
       request.method !== "GET" &&
       !allowedOrigins.has(request.headers.origin ?? "")
