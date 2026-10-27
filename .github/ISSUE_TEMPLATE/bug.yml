@@ -1,6 +1,6 @@
-# Write Issue and PR titles and descriptions in Korean, while preserving exact English names for proper nouns and technical terms.
+# Issue와 PR의 제목과 소제목은 영어, 본문은 한국어로 작성하며 기술 식별자와 명령은 원문을 유지합니다.
 name: Bug
-description: Report reproducible behavior that conflicts with an approved requirement.
+description: 승인된 요구사항과 다르게 동작하는 재현 가능한 문제를 제보합니다.
 title: "[Bug] "
 labels:
   - "bug"
@@ -27,9 +27,9 @@ body:
     id: evidence
     attributes:
       label: Evidence
-      description: Include concise logs, screenshots, or recording links without secrets.
+      description: 비밀값을 제외한 짧은 로그, 스크린샷이나 녹화 링크를 첨부합니다.
   - type: input
     id: requirement_ids
     attributes:
       label: Related requirement IDs
-      placeholder: U1, U2, or None
+      placeholder: U1, U2 또는 없음
