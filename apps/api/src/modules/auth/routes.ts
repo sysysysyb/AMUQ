@@ -1,13 +1,26 @@
 import { performance } from "node:perf_hooks";
 import { setTimeout as delay } from "node:timers/promises";
-import type { FastifyPluginAsync } from "fastify";
+import type { FastifyPluginAsync, FastifyReply } from "fastify";
 import type { Pool } from "pg";
 import type { GoogleOidcConfig } from "#api/config/environment";
 import { type GoogleIdentity } from "#api/modules/auth/google";
-import { consumePasswordLoginIp } from "#api/modules/auth/login-rate-limit";
+import {
+  consumePasswordLoginIp,
+  withPasswordLoginAttempt,
+} from "#api/modules/auth/login-rate-limit";
 import { AuthRateLimitExceededError } from "#api/modules/auth/rate-limit";
-import { completeSignup } from "#api/modules/auth/service";
-import { serializeAccountLinkCookie } from "#api/modules/auth/session";
+import {
+  authenticatePassword,
+  completeSignup,
+  getAuthenticatedUser,
+  revokeSession,
+} from "#api/modules/auth/service";
+import {
+  clearSessionCookie,
+  serializeAccountLinkCookie,
+  serializeSessionCookie,
+  sessionCookieName,
+} from "#api/modules/auth/session";
 import {
   issueSignupChallenge,
   resendSignupChallenge,
@@ -44,6 +57,16 @@ const errorSchema = {
     message: { type: "string" },
   },
 } as const;
+const userSchema = {
+  type: "object",
+  additionalProperties: false,
+  required: ["id", "email", "emailVerified"],
+  properties: {
+    id: { type: "string", format: "uuid" },
+    email: { type: "string", format: "email" },
+    emailVerified: { type: "boolean" },
+  },
+} as const;
 const emailBodySchema = {
   type: "object",
   additionalProperties: false,
@@ -59,6 +82,15 @@ const newPasswordProperty = {
   ...passwordProperty,
   maxLength: 20,
   pattern: "(?=[\\s\\S]*[A-Z])(?=[\\s\\S]*[a-z])(?=[\\s\\S]*[0-9])",
+} as const;
+const emailPasswordBodySchema = {
+  type: "object",
+  additionalProperties: false,
+  required: ["email", "password"],
+  properties: {
+    email: emailBodySchema.properties.email,
+    password: passwordProperty,
+  },
 } as const;
 const tokenBodySchema = {
   type: "object",
@@ -83,6 +115,45 @@ const originHeadersSchema = {
   type: "object",
   required: ["origin"],
   properties: { origin: { type: "string", format: "uri" } },
+} as const;
+const setCookieHeader = {
+  "Set-Cookie": {
+    description: "Secure __Host-session cookie",
+    type: "string",
+  },
+} as const;
+const userWithCookieSchema = {
+  ...userSchema,
+  headers: setCookieHeader,
+} as const;
+const accountLinkRequiredSchema = {
+  type: "object",
+  additionalProperties: false,
+  required: ["status", "requiredProvider"],
+  properties: {
+    status: { type: "string", const: "account_link_required" },
+    requiredProvider: { type: "string", enum: ["google", "password"] },
+  },
+  headers: {
+    "Set-Cookie": {
+      description: "Secure __Host-account-link cookie",
+      type: "string",
+    },
+  },
+} as const;
+const passwordLoginResponseSchema = {
+  oneOf: [userWithCookieSchema, accountLinkRequiredSchema],
+  headers: {
+    "Set-Cookie": {
+      description:
+        "Secure __Host-session or __Host-account-link cookie, depending on the response status",
+      type: "string",
+    },
+  },
+} as const;
+const noContentWithCookieSchema = {
+  type: "null",
+  headers: setCookieHeader,
 } as const;
 
 export const registerAuthRoutes: FastifyPluginAsync<AuthRoutesOptions> = async (
@@ -377,6 +448,131 @@ export const registerAuthRoutes: FastifyPluginAsync<AuthRoutesOptions> = async (
         .send(result);
     },
   );
+
+  server.post<{ Body: { email: string; password: string } }>(
+    "/auth/login",
+    {
+      schema: {
+        operationId: "loginWithPassword",
+        headers: originHeadersSchema,
+        body: emailPasswordBodySchema,
+        response: {
+          200: passwordLoginResponseSchema,
+          400: errorSchema,
+          401: errorSchema,
+          403: errorSchema,
+          429: rateLimitSchema,
+          500: errorSchema,
+        },
+      },
+    },
+    async (request, reply) => {
+      const login = await withPasswordLoginAttempt(
+        options.database,
+        request.body.email,
+        request.clientAddress,
+        options.rateLimitSecret,
+        (attempt) =>
+          authenticatePassword(
+            options.database,
+            request.body.email,
+            request.body.password,
+            new Date(),
+            attempt,
+          ),
+      );
+      if (!login) return unauthorized(reply, false);
+      if (login.status === "account_link_required") {
+        return reply
+          .header(
+            "set-cookie",
+            serializeAccountLinkCookie(login.linkSessionToken),
+          )
+          .send({
+            requiredProvider: login.requiredProvider,
+            status: login.status,
+          });
+      }
+      return reply
+        .header("set-cookie", serializeSessionCookie(login.sessionToken))
+        .send(login.user);
+    },
+  );
+
+  server.post(
+    "/auth/logout",
+    {
+      schema: {
+        operationId: "logout",
+        headers: originHeadersSchema,
+        response: {
+          204: noContentWithCookieSchema,
+          403: errorSchema,
+          500: errorSchema,
+        },
+      },
+    },
+    async (request, reply) => {
+      const session = readSessionCookie(request.headers.cookie);
+      if (session.token) await revokeSession(options.database, session.token);
+      return reply.header("set-cookie", clearSessionCookie()).code(204).send();
+    },
+  );
+
+  server.get(
+    "/account/me",
+    {
+      schema: {
+        operationId: "getCurrentUser",
+        security: [{ sessionCookie: [] }],
+        response: { 200: userSchema, 401: errorSchema, 500: errorSchema },
+      },
+    },
+    async (request, reply) => {
+      const session = readSessionCookie(request.headers.cookie);
+      if (!session.token || session.invalid) return unauthorized(reply);
+      const user = await getAuthenticatedUser(options.database, session.token);
+      return user ? reply.send(user) : unauthorized(reply);
+    },
+  );
+};
+
+const unauthorized = (reply: FastifyReply, clearCookie = true) => {
+  if (clearCookie) reply.header("set-cookie", clearSessionCookie());
+  return reply.code(401).send({
+    code: "authentication_required",
+    message: "로그인이 필요합니다.",
+  });
+};
+
+const readSessionCookie = (
+  header: string | undefined,
+): {
+  invalid: boolean;
+  token?: string;
+} => {
+  return readCookie(header, sessionCookieName);
+};
+
+const readCookie = (
+  header: string | undefined,
+  name: string,
+): { invalid: boolean; token?: string } => {
+  if (!header) return { invalid: false };
+  const values = header
+    .split(";")
+    .map((part) => part.trim())
+    .filter((part) => part.startsWith(`${name}=`))
+    .map((part) => part.slice(name.length + 1));
+  if (values.length !== 1) return { invalid: values.length > 1 };
+  try {
+    const token = decodeURIComponent(values[0]!);
+    return /^[A-Za-z0-9_-]{43}$/.test(token)
+      ? { invalid: false, token }
+      : { invalid: true };
+  } catch {
+    return { invalid: true };
+  }
 };
 
 const waitForAnonymousResponseFloor = async (startedAt: number) => {

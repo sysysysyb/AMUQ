@@ -1,11 +1,16 @@
 import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
+
 import type { Pool } from "pg";
 import { afterAll, beforeEach, describe } from "vitest";
+
 import { createDatabasePool } from "#api/db/database";
 import { buildServer } from "#api/http/server";
 import { hashPassword } from "#api/modules/auth/password";
-import { type AuthMutationOptions } from "#api/modules/auth/service";
+import {
+  authenticatePassword,
+  type AuthMutationOptions,
+} from "#api/modules/auth/service";
 import { deriveSignupCode } from "#api/modules/auth/signup-token";
 import { hashOpaqueToken } from "#api/modules/auth/token";
 import { assertTestDatabaseUrl } from "#api-test/support/test-database";
@@ -114,5 +119,30 @@ export const setupAuthDatabase = () => {
     await admin?.end();
   });
 
-  return { admin, connectionString, databaseTest };
+  const createVerifiedPasswordLogin = async (
+    email: string,
+    password: string,
+    clientAddress: string,
+    now: Date,
+  ) => {
+    const options = {
+      authTokenSecret,
+      rateLimitSecret: "r".repeat(32),
+    };
+    await completePasswordSignup(
+      admin!,
+      email,
+      password,
+      clientAddress,
+      options,
+      now,
+    );
+    const login = await authenticatePassword(admin!, email, password, now);
+    if (!login || login.status !== "authenticated") {
+      throw new Error("Password account setup failed");
+    }
+    return login;
+  };
+
+  return { admin, connectionString, createVerifiedPasswordLogin, databaseTest };
 };

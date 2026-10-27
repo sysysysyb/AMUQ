@@ -1,5 +1,5 @@
 import type { Pool } from "pg";
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { buildServer } from "#api/http/server";
 
 const servers: Awaited<ReturnType<typeof buildServer>>[] = [];
@@ -76,6 +76,106 @@ describe("authentication HTTP boundary", () => {
     for (const response of [missing, forged, developmentOrigin, malformed]) {
       expect(response.headers["cache-control"]).toBe("no-store");
     }
+  });
+
+  it("rejects duplicate session cookies and expires the browser cookie", async () => {
+    const server = await createServer();
+    const response = await server.inject({
+      method: "GET",
+      url: "/account/me",
+      headers: {
+        cookie: "__Host-session=first; __Host-session=second",
+      },
+    });
+
+    expect(response.statusCode).toBe(401);
+    expect(response.json()).toEqual({
+      code: "authentication_required",
+      message: "로그인이 필요합니다.",
+    });
+    expect(response.headers["set-cookie"]).toContain(
+      "__Host-session=; Max-Age=0",
+    );
+    expect(response.headers["cache-control"]).toBe("no-store");
+  });
+
+  it("revokes the server session and expires the browser cookie on logout", async () => {
+    const queries: string[] = [];
+    const authDatabase = {
+      query: vi.fn(async (sql: string) => {
+        queries.push(sql);
+        return { rows: [] };
+      }),
+    } as unknown as Pool;
+    const server = await createServer(authDatabase);
+    const response = await server.inject({
+      method: "POST",
+      url: "/auth/logout",
+      headers: {
+        cookie: `__Host-session=${"a".repeat(43)}`,
+        origin: "https://web.example",
+      },
+    });
+
+    expect(response.statusCode).toBe(204);
+    expect(response.headers["set-cookie"]).toContain(
+      "__Host-session=; Max-Age=0",
+    );
+    expect(queries).toEqual([expect.stringContaining("UPDATE auth_sessions")]);
+  });
+
+  it("returns a documented Retry-After value when a subject is limited", async () => {
+    const client = {
+      query: async (sql: string) => ({
+        rows: sql.includes("SELECT clock_timestamp()")
+          ? [{ now: new Date() }]
+          : sql.includes("INSERT INTO auth_password_login_limits")
+            ? [
+                {
+                  windowId: "window",
+                  expiresAt: new Date(Date.now() + 60_000),
+                  attemptCount: 100,
+                  pendingAttempts: [],
+                },
+              ]
+            : sql.includes("SELECT expires_at")
+              ? [{ expiresAt: new Date(Date.now() + 60_000) }]
+              : [],
+      }),
+      release: () => undefined,
+    };
+    const limitedDatabase = {
+      connect: async () => client,
+    } as unknown as Pool;
+    const server = await createServer(limitedDatabase);
+    const response = await server.inject({
+      method: "POST",
+      url: "/auth/signup/challenges",
+      headers: { origin: "https://web.example" },
+      payload: {
+        email: "limited@example.com",
+        operationKey: "12345678-1234-4234-8234-123456789012",
+      },
+    });
+
+    expect(response.statusCode).toBe(429);
+    expect(Number(response.headers["retry-after"])).toBeGreaterThan(0);
+    expect(response.json()).toEqual({
+      code: "rate_limit_exceeded",
+      message: "요청이 너무 많습니다. 잠시 후 다시 시도해 주세요.",
+    });
+
+    const login = await server.inject({
+      method: "POST",
+      url: "/auth/login",
+      headers: { origin: "https://web.example" },
+      payload: {
+        email: "limited@example.com",
+        password: "ValidPass1234",
+      },
+    });
+    expect(login.statusCode).toBe(429);
+    expect(login.headers["retry-after"]).toBeDefined();
   });
 
   it("does not expose private database errors", async () => {
