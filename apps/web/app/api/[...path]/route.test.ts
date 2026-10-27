@@ -1,6 +1,5 @@
+import { GET, POST } from "@web/app/api/[...path]/route";
 import { afterEach, describe, expect, it, vi } from "vitest";
-
-import { GET, POST } from "./route";
 
 const originalApiOrigin = process.env.API_ORIGIN;
 const originalProxySharedSecret = process.env.PROXY_SHARED_SECRET;

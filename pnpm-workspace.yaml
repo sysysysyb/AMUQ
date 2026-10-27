@@ -8,5 +8,7 @@ allowBuilds:
 
 engineStrict: true
 minimumReleaseAgeExclude:
+  - postcss@8.5.29
   - svix@2.8.0
+  - zustand@5.0.16
 saveExact: true
