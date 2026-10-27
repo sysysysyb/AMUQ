@@ -21,14 +21,14 @@ const hopByHopHeaders = [
   "upgrade",
 ] as const;
 
-function stripHopByHopHeaders(headers: Headers) {
+const stripHopByHopHeaders = (headers: Headers) => {
   const connectionHeaders = headers.get("connection")?.split(",") ?? [];
   for (const name of [...hopByHopHeaders, ...connectionHeaders]) {
     headers.delete(name.trim());
   }
-}
+};
 
-function apiOrigin(): URL {
+const apiOrigin = (): URL => {
   const configured = process.env.API_ORIGIN;
   if (!configured && process.env.NODE_ENV === "production") {
     throw new Error("API_ORIGIN is required in production");
@@ -42,27 +42,27 @@ function apiOrigin(): URL {
     throw new Error("API_ORIGIN must use http or https");
   }
   return origin;
-}
+};
 
-function proxySharedSecret(): string | undefined {
+const proxySharedSecret = (): string | undefined => {
   const secret = process.env.PROXY_SHARED_SECRET;
   if (!secret && process.env.NODE_ENV === "production") {
     throw new Error("PROXY_SHARED_SECRET is required in production");
   }
   return secret;
-}
+};
 
-function platformClientAddress(request: Request): string {
+const platformClientAddress = (request: Request): string => {
   const address = request.headers.get("x-vercel-forwarded-for");
   if (address && isIP(address) !== 0) return address;
   if (process.env.NODE_ENV !== "production") return "127.0.0.1";
   throw new Error("x-vercel-forwarded-for must contain one IP address");
-}
+};
 
-async function proxy(
+const proxy = async (
   request: Request,
   context: RouteContext,
-): Promise<Response> {
+): Promise<Response> => {
   const { path } = await context.params;
   const origin = apiOrigin();
   const basePath = origin.pathname.endsWith("/")
@@ -130,7 +130,7 @@ async function proxy(
     statusText: upstream.statusText,
     headers: responseHeaders,
   });
-}
+};
 
 export const GET = proxy;
 export const HEAD = proxy;

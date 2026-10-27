@@ -10,8 +10,6 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
 
 ## Frontend conventions
 
-Tailwind, `lib/cn.ts`, and `class-variance-authority` below apply after Issue #8 PR3 introduces them. Earlier PRs retain the current web code and dependencies; these conventions do not authorize installing tools or converting styles outside the approved PR scope.
-
 - Start components in the nearest feature. Promote them to `components/ui` only when a second feature reuses them, the approved design system defines them as shared, or they are stable app-wide primitives. Search existing feature and shared components before adding another.
 - Use `@web/...` aliases for imports within the web workspace, including nearby feature modules and tests, so the owning feature is clear. Keep Next.js, React and other package imports as package specifiers.
 - Use Tailwind CSS v4 for all styling, including existing components and global styles. Express component styles as Tailwind utilities; use Tailwind's CSS-first `@theme`, `@layer base`, and `@apply` where global rules require them. Do not add plain feature CSS selectors. Preserve approved rendering and accessibility during conversion.
