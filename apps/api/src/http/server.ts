@@ -9,8 +9,13 @@ import Fastify, {
 } from "fastify";
 import type { ApplicationEnvironment } from "#api/config/environment";
 import { resolveClientAddress } from "#api/http/client-address";
+import {
+  type AuthRoutesOptions,
+  registerAuthRoutes,
+} from "#api/modules/auth/routes";
 
 export interface BuildServerOptions {
+  auth?: AuthRoutesOptions;
   environment?: ApplicationEnvironment;
   onClose?: () => Promise<void>;
   proxySecret?: string;
@@ -201,6 +206,10 @@ export const buildServer = async (options: BuildServerOptions = {}) => {
     request.clientAddress = resolveClientAddress(request, options.proxySecret);
     reply.header("x-request-id", request.id);
   });
+
+  if (options.auth) {
+    await server.register(registerAuthRoutes, options.auth);
+  }
 
   if (options.onClose) {
     server.addHook("onClose", options.onClose);

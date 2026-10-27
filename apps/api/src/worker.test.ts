@@ -1,6 +1,9 @@
 import { execFileSync } from "node:child_process";
 import { EventEmitter } from "node:events";
+
+import { DatabaseError } from "pg";
 import { describe, expect, it, vi } from "vitest";
+
 import {
   startWorker,
   type WorkerBoss,
@@ -114,6 +117,54 @@ describe("worker runtime", () => {
       broken = true;
       await vi.advanceTimersByTimeAsync(2_000);
       expect(logError).toHaveBeenCalledTimes(2);
+    } finally {
+      await worker.shutdown();
+      vi.useRealTimers();
+    }
+  });
+
+  it("runs signup cleanup at most once per minute across fresh-mail wakeups", async () => {
+    vi.useFakeTimers();
+    let handler: (() => Promise<unknown>) | undefined;
+    const database = {
+      executeSql: vi.fn<(sql: string) => Promise<{ rows: unknown[] }>>(
+        async () => ({ rows: [] }),
+      ),
+    };
+    const boss = fakeBoss({
+      getDb: () => database,
+      work: vi.fn(async (_name, registered) => {
+        handler = registered;
+        return "id";
+      }),
+    });
+    const worker = await startWorker({
+      boss,
+      connectionString: "postgresql://localhost/amuq",
+      emailDelivery: {
+        config: {
+          apiKey: "re_test",
+          authTokenSecret: "a".repeat(32),
+          from: "a@example.com",
+          webOrigin: "https://example.com",
+        },
+      },
+      runtime: fakeRuntime(),
+      verifySchema: async () => {},
+      logInfo: vi.fn(),
+      logError: vi.fn(),
+    });
+    const cleanupCount = () =>
+      database.executeSql.mock.calls.filter(([sql]) =>
+        String(sql).includes("DELETE FROM auth_signup_attempts"),
+      ).length;
+    try {
+      await handler?.();
+      await handler?.();
+      expect(cleanupCount()).toBe(1);
+      await vi.advanceTimersByTimeAsync(60_000);
+      await handler?.();
+      expect(cleanupCount()).toBe(2);
     } finally {
       await worker.shutdown();
       vi.useRealTimers();
@@ -290,6 +341,118 @@ describe("worker runtime", () => {
     expect(boss.stop).toHaveBeenCalledWith({ graceful: false });
     expect(runtime.listenerCount("SIGINT")).toBe(0);
     expect(runtime.listenerCount("SIGTERM")).toBe(0);
+  });
+
+  it.each(["55P03", "EPIPE"])(
+    "keeps delivery running with bounded cleanup diagnostics for %s",
+    async (errorCode) => {
+      const clock = vi.spyOn(Date, "now").mockReturnValue(200_000);
+      const database = {
+        executeSql: vi.fn(async (sql: string) => {
+          if (sql.includes("DELETE FROM auth_signup_attempts"))
+            throw Object.assign(
+              errorCode === "55P03"
+                ? new DatabaseError("private cleanup detail", 0, "error")
+                : new Error("private cleanup detail"),
+              {
+                code: errorCode,
+              },
+            );
+          return { rows: [] };
+        }),
+      };
+      let handler: (() => Promise<unknown>) | undefined;
+      const boss = fakeBoss({
+        getDb: () => database,
+        work: vi.fn(async (_name, registered) => {
+          handler = registered;
+          return "worker-id";
+        }),
+      });
+      const logError = vi.fn();
+      const worker = await startWorker({
+        boss,
+        connectionString: "postgresql://localhost/amuq",
+        emailDelivery: {
+          config: {
+            apiKey: "re_test",
+            authTokenSecret: "a".repeat(32),
+            from: "AMUQ <account@example.com>",
+            webOrigin: "https://example.com",
+          },
+          sendEmail: vi.fn(),
+        },
+        logError,
+        logInfo: vi.fn(),
+        runtime: fakeRuntime(),
+        verifySchema: vi.fn(async () => undefined),
+      });
+      try {
+        await expect(handler!()).resolves.toBeUndefined();
+        clock.mockReturnValue(260_000);
+        await expect(handler!()).resolves.toBeUndefined();
+        expect(logError).toHaveBeenCalledTimes(2);
+        expect(logError).toHaveBeenCalledWith({
+          code: "signup_cleanup_failed",
+          sqlState: errorCode === "55P03" ? errorCode : "unknown",
+        });
+        expect(JSON.stringify(logError.mock.calls)).not.toContain(
+          "private cleanup detail",
+        );
+        expect(
+          database.executeSql.mock.calls.filter(([sql]) =>
+            sql.includes("SELECT * FROM claimed"),
+          ),
+        ).toHaveLength(2);
+      } finally {
+        await worker.shutdown();
+        clock.mockRestore();
+      }
+    },
+  );
+
+  it("runs signup cleanup even when delivery fails and preserves the delivery error", async () => {
+    const failure = new Error("delivery failure");
+    const database = {
+      executeSql: vi.fn(async (sql: string) => {
+        if (sql.includes("WITH consumed")) throw failure;
+        return { rows: [] };
+      }),
+    };
+    let handler: (() => Promise<unknown>) | undefined;
+    const worker = await startWorker({
+      boss: fakeBoss({
+        getDb: () => database,
+        work: vi.fn(async (_name, registered) => {
+          handler = registered;
+          return "worker-id";
+        }),
+      }),
+      connectionString: "postgresql://localhost/amuq",
+      emailDelivery: {
+        config: {
+          apiKey: "re_test",
+          authTokenSecret: "a".repeat(32),
+          from: "AMUQ <account@example.com>",
+          webOrigin: "https://example.com",
+        },
+        sendEmail: vi.fn(),
+      },
+      logError: vi.fn(),
+      logInfo: vi.fn(),
+      runtime: fakeRuntime(),
+      verifySchema: vi.fn(async () => undefined),
+    });
+    try {
+      await expect(handler!()).rejects.toBe(failure);
+      expect(
+        database.executeSql.mock.calls.some(([sql]) =>
+          sql.includes("DELETE FROM auth_signup_attempts"),
+        ),
+      ).toBe(true);
+    } finally {
+      await worker.shutdown();
+    }
   });
 
   it("cleans up startup signals when schema verification fails", async () => {

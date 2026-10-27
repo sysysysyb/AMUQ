@@ -5,7 +5,7 @@
 ## Current state
 
 - Status: in progress
-- Stage: Stage 6 — Issue #8 / PR2 일괄 재구성 4/17 후보 검증 완료, 로컬 커밋 진행
+- Stage: Stage 6 — Issue #8 / PR2 일괄 재구성 5/17 후보 검증 완료, 로컬 커밋 진행
 
 ## Active work
 
@@ -17,8 +17,8 @@
 
 ## Current checkpoint
 
-- Last completed: 메일 outbox와 worker 중간 상태 검증. 직전 재구성 커밋 `8598ebb`
-- Latest verification: 타입, 단위 90개, 해당 DB 통합 33개와 린트 — passed
+- Last completed: 이메일 소유권 확인과 가입 완료 중간 상태 검증. 직전 재구성 커밋 `2e43933`
+- Latest verification: 타입, 단위 97개, 해당 DB 통합 27개와 린트 — passed
 
 ## Review focus
 

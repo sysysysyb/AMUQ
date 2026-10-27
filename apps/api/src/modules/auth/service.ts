@@ -1,13 +1,23 @@
-import type { Pool } from "pg";
-import { createSession } from "#api/modules/auth/session";
+import type { Pool, PoolClient } from "pg";
+import { inTransaction } from "#api/db/transaction";
+import { hashPassword } from "#api/modules/auth/password";
+import { consumeAuthRateLimit } from "#api/modules/auth/rate-limit";
+import {
+  accountLinkSessionLifetimeMs,
+  createSession,
+} from "#api/modules/auth/session";
+import { lockSignupEmail } from "#api/modules/auth/signup-challenge";
 import {
   authTokenKeyId,
   type AuthTokenPurpose,
   createAuthToken,
+  createOpaqueToken,
   hashOpaqueToken,
 } from "#api/modules/auth/token";
 
 type AuthDatabase = Pick<Pool, "query">;
+type AuthPool = Pick<Pool, "connect" | "query">;
+type AuthClock = Date | (() => Date);
 
 export interface AuthenticatedUser {
   email: string;
@@ -239,3 +249,214 @@ export type SignupCompletion =
         | "expired";
     }
   | AccountLinkRequired;
+
+export const retireLegacySignupTokens = async (
+  database: AuthPool,
+  now = new Date(),
+): Promise<void> => {
+  await database.query(
+    `WITH retired AS (
+       UPDATE auth_tokens SET consumed_at = $1
+        WHERE purpose = 'email_verification' AND consumed_at IS NULL RETURNING id
+     ) UPDATE email_outbox SET status = 'failed', last_error_code = 'legacy_signup_retired', updated_at = $1
+        WHERE token_id IN (SELECT id FROM retired) AND status = 'pending' AND attempt_count = 0`,
+    [now],
+  );
+};
+
+export const completeSignup = async (
+  database: AuthPool,
+  rawProof: string,
+  password: string,
+  clock: AuthClock = () => new Date(),
+  admission?: { clientAddress: string; rateLimitSecret: string },
+): Promise<SignupCompletion> => {
+  const proofHash = hashOpaqueToken(rawProof);
+  const candidate = await database.query<{
+    id: string;
+    email: string;
+    proof_expires_at: Date;
+    proof_consumed_at: Date | null;
+  }>(
+    "SELECT id, email, proof_expires_at, proof_consumed_at FROM auth_signup_attempts WHERE proof_hash = $1",
+    [proofHash],
+  );
+  const attempt = candidate.rows[0];
+  if (!attempt) return { status: "invalid_proof" };
+  if (attempt.proof_consumed_at) return { status: "already_completed" };
+  if (attempt.proof_expires_at <= readAuthClock(clock))
+    return { status: "expired" };
+  if (admission)
+    await consumeAuthRateLimit(
+      database,
+      "signup",
+      `signup-complete:${admission.clientAddress}`,
+      `signup-complete:${proofHash}`,
+      admission.rateLimitSecret,
+      readAuthClock(clock),
+    );
+  const passwordHash = await hashPassword(password);
+  return inTransaction(database, async (client) => {
+    await lockGoogleIdentityChanges(client);
+    await lockSignupEmail(client, attempt.email);
+    const user = await client.query<{ id: string; verifiedAt: Date | null }>(
+      'SELECT id, email_verified_at AS "verifiedAt" FROM users WHERE email = $1 FOR UPDATE',
+      [attempt.email],
+    );
+    const locked = await client.query<{
+      proof_consumed_at: Date | null;
+      proof_expires_at: Date;
+    }>(
+      "SELECT proof_consumed_at, proof_expires_at FROM auth_signup_attempts WHERE id = $1 AND proof_hash = $2 FOR UPDATE",
+      [attempt.id, proofHash],
+    );
+    if (!locked.rows[0]) return { status: "invalid_proof" };
+    if (locked.rows[0].proof_consumed_at)
+      return { status: "already_completed" };
+    const now = readAuthClock(clock);
+    if (locked.rows[0].proof_expires_at <= now) return { status: "expired" };
+    const existing = user.rows[0];
+    const identities = existing
+      ? (
+          await client.query<{
+            provider: string;
+            verifiedAt: Date | null;
+            activatedAt: Date | null;
+          }>(
+            'SELECT provider, verified_at AS "verifiedAt", activated_at AS "activatedAt" FROM auth_identities WHERE user_id = $1 FOR UPDATE',
+            [existing.id],
+          )
+        ).rows
+      : [];
+    const isLegacy =
+      existing &&
+      isRecoverableLegacyPasswordAccount(existing.verifiedAt, identities);
+    const isGoogleOnly =
+      existing?.verifiedAt &&
+      identities.length === 1 &&
+      identities[0]!.provider === "google" &&
+      identities[0]!.verifiedAt &&
+      identities[0]!.activatedAt;
+    let result: SignupCompletion;
+    if (existing && !isLegacy && !isGoogleOnly) {
+      result = { status: "account_exists" };
+    } else {
+      const userId =
+        existing?.id ??
+        (
+          await client.query<{ id: string }>(
+            "INSERT INTO users (email, email_verified_at, created_at, updated_at) VALUES ($1, $2, $2, $2) RETURNING id",
+            [attempt.email, now],
+          )
+        ).rows[0]!.id;
+      if (isLegacy) {
+        await retireLegacySignupCredentials(client, userId, now);
+        await client.query(
+          "UPDATE users SET email_verified_at = $2, updated_at = $2 WHERE id = $1",
+          [userId, now],
+        );
+        await client.query(
+          "UPDATE auth_identities SET password_hash = $2, verified_at = $3, activated_at = $3, updated_at = $3 WHERE user_id = $1 AND provider = 'password'",
+          [userId, passwordHash, now],
+        );
+      } else {
+        await client.query(
+          `INSERT INTO auth_identities (user_id, provider, password_hash, verified_at, activated_at, created_at, updated_at)
+           VALUES ($1, 'password', $2, $3, $4, $3, $3)`,
+          [userId, passwordHash, now, isGoogleOnly ? null : now],
+        );
+      }
+      result = isGoogleOnly
+        ? {
+            status: "account_link_required",
+            requiredProvider: "google",
+            linkSessionToken: await issueAccountLinkSession(
+              client,
+              userId,
+              "password",
+              "google",
+              now,
+            ),
+          }
+        : { status: "created" };
+    }
+    await client.query(
+      "UPDATE auth_signup_attempts SET proof_consumed_at = $2 WHERE id = $1",
+      [attempt.id, now],
+    );
+    return result;
+  });
+};
+
+const isRecoverableLegacyPasswordAccount = (
+  verifiedAt: Date | null,
+  identities: { provider: string; verifiedAt: Date | null }[],
+): boolean =>
+  !verifiedAt &&
+  identities.length === 1 &&
+  identities[0]!.provider === "password" &&
+  !identities[0]!.verifiedAt;
+
+const retireLegacySignupCredentials = async (
+  client: PoolClient,
+  userId: string,
+  now: Date,
+) => {
+  await client.query(
+    `WITH retired AS (
+       UPDATE auth_tokens SET consumed_at = $2 WHERE user_id = $1 AND consumed_at IS NULL RETURNING id
+     ) UPDATE email_outbox SET status = 'failed', last_error_code = 'legacy_signup_retired', updated_at = $2
+       WHERE token_id IN (SELECT id FROM retired) AND status = 'pending' AND attempt_count = 0`,
+    [userId, now],
+  );
+  await client.query(
+    "UPDATE auth_sessions SET revoked_at = $2 WHERE user_id = $1 AND revoked_at IS NULL",
+    [userId, now],
+  );
+  await client.query(
+    "UPDATE auth_link_sessions SET consumed_at = $2 WHERE user_id = $1 AND consumed_at IS NULL",
+    [userId, now],
+  );
+  await client.query(
+    "UPDATE auth_oidc_flows SET consumed_at = $2 WHERE user_id = $1 AND consumed_at IS NULL",
+    [userId, now],
+  );
+};
+
+const issueAccountLinkSession = async (
+  database: AuthDatabase,
+  userId: string,
+  primaryProvider: "google" | "password",
+  requiredProvider: "google" | "password",
+  now: Date,
+): Promise<string> => {
+  const rawToken = createOpaqueToken();
+  await database.query(
+    `WITH expired AS (
+       DELETE FROM auth_link_sessions WHERE expires_at <= $5
+     )
+     INSERT INTO auth_link_sessions
+       (token_hash, user_id, primary_provider, required_provider, created_at, expires_at)
+     VALUES ($1, $2, $3, $4, $5, $6)`,
+    [
+      hashOpaqueToken(rawToken),
+      userId,
+      primaryProvider,
+      requiredProvider,
+      now,
+      new Date(now.getTime() + accountLinkSessionLifetimeMs),
+    ],
+  );
+  return rawToken;
+};
+
+const readAuthClock = (clock: AuthClock): Date => {
+  return clock instanceof Date ? clock : clock();
+};
+
+const lockGoogleIdentityChanges = async (database: AuthDatabase) => {
+  // ponytail: one lock keeps account linking deadlock-free; split by subject only if OIDC completion throughput matters.
+  await database.query(
+    "SELECT pg_advisory_xact_lock(hashtextextended('amuq:google-identity', 0))",
+  );
+};
