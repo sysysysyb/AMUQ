@@ -1,0 +1,1 @@
+ALTER TYPE "public"."auth_rate_limit_scope" ADD VALUE 'login' BEFORE 'verification_resend';

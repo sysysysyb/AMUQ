@@ -1,4 +1,4 @@
-export function assertTestDatabaseUrl(connectionString: string): string {
+export const assertTestDatabaseUrl = (connectionString: string): string => {
   let url: URL;
   try {
     url = new URL(connectionString);
@@ -14,4 +14,4 @@ export function assertTestDatabaseUrl(connectionString: string): string {
     throw new Error('TEST_DATABASE_URL must target the "amuq_test" database');
   }
   return connectionString;
-}
+};

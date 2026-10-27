@@ -17,7 +17,7 @@
     "lint": "eslint .",
     "test": "vitest run",
     "test:e2e": "playwright test",
-    "test:integration": "vitest run apps/api/test/integration",
+    "test:integration": "node --env-file-if-exists=.env -e \"if (!process.env.TEST_DATABASE_URL) throw new Error('TEST_DATABASE_URL is required for integration tests')\" && node --env-file-if-exists=.env ./node_modules/vitest/vitest.mjs run apps/api/test/integration",
     "typecheck": "pnpm -r --if-present typecheck"
   },
   "devDependencies": {

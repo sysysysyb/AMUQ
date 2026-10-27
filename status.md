@@ -1,11 +1,11 @@
 # Workflow Status
 
-> Updated: 2026-10-27 13:43 KST
+> Updated: 2026-10-27 15:17 KST
 
 ## Current state
 
-- Status: awaiting approval
-- Stage: Stage 6 — Issue #8 / PR2 커밋 재구성 1/17 첫 커밋 승인 대기
+- Status: in progress
+- Stage: Stage 6 — Issue #8 / PR2 일괄 재구성 2/17 후보 검증 완료, 로컬 커밋 진행
 
 ## Active work
 
@@ -17,14 +17,12 @@
 
 ## Current checkpoint
 
-- Last completed: 첫 묶음의 검증과 독립 검토 및 재검토 완료. 기존 PR 브랜치로 연결하고 운영 기록 지적 5건 보완
-- Latest verification: 환경 21개, 단위 49개, 임시 DB 통합 16개, HTTP E2E 2개와 타입·린트·포맷·API/Next 빌드 — passed
+- Last completed: 인증 DB 구조와 migration 중간 상태 검증. 직전 재구성 커밋 `42ab9f0`
+- Latest verification: 타입, 단위 52개, 해당 DB 통합 16개와 린트 — passed
 
 ## Review focus
 
-- `apps/api/src/config/environment.ts` — 비밀키와 허용 주소 검사
-- `apps/api/src/config/environment.test.ts` — 잘못된 설정 거부와 예시 빈 값
-- `packages/contracts/src/auth.ts` — 인증 공급자와 사용자 응답 타입
+- None
 
 ## Remaining risk
 
@@ -36,5 +34,5 @@
 
 ## Next action
 
-- Owner: User
-- Action: 검토한 첫 묶음 11파일의 로컬 커밋 승인
+- Owner: Codex
+- Action: 사용자 일괄 승인과 이번 한정 검토 예외에 따라 17개 로컬 커밋 완료

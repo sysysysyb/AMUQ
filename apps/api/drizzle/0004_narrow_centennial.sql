@@ -1,0 +1,1 @@
+ALTER TYPE "public"."auth_token_purpose" ADD VALUE 'password_reset_session';

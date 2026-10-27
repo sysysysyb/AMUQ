@@ -52,7 +52,7 @@ databaseTest("database deployment", () => {
       "SELECT version FROM pgboss.version",
     );
 
-    expect(drizzle.rows).toEqual([{ count: "1" }]);
+    expect(drizzle.rows).toEqual([{ count: "11" }]);
     expect(pgBoss.rows).toHaveLength(1);
     expect(pgBoss.rows[0]?.version).toBeGreaterThan(0);
   });
@@ -167,10 +167,16 @@ databaseTest("database deployment", () => {
   }, 30_000);
 });
 
-async function resetDatabase() {
+const resetDatabase = async () => {
+  await admin?.query(
+    "DROP TABLE IF EXISTS email_webhook_events, email_outbox, auth_signup_codes, auth_signup_attempts, auth_password_login_limits, auth_rate_limits, auth_oidc_flows, auth_link_sessions, auth_tokens, auth_sessions, auth_identities, users CASCADE",
+  );
+  await admin?.query(
+    "DROP TYPE IF EXISTS email_delivery_status, auth_oidc_flow_mode, auth_token_purpose, auth_rate_limit_subject_kind, auth_rate_limit_scope, auth_provider CASCADE",
+  );
   await admin?.query("DROP SCHEMA IF EXISTS pgboss CASCADE");
   await admin?.query("DROP SCHEMA IF EXISTS drizzle CASCADE");
-}
+};
 
 async function pgBossVersion(): Promise<number> {
   const result = await admin!.query<{ version: number }>(

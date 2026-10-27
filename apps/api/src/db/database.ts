@@ -1,13 +1,13 @@
 import { readMigrationFiles } from "drizzle-orm/migrator";
+import { Pool, type PoolConfig } from "pg";
 import {
-  PgBoss,
   type BamStatusSummary,
   type ConstructorOptions,
+  PgBoss,
 } from "pg-boss";
-import { Pool, type PoolConfig } from "pg";
 
 import { applicationEnvironment } from "#api/config/environment";
-import { migrationConfig } from "./migration-config.ts";
+import { migrationConfig } from "#api/db/migration-config";
 
 const databaseProbeTimeoutMs = 5_000;
 
@@ -19,24 +19,24 @@ interface MigrationRow {
   rows: { created_at: string; hash: string }[];
 }
 
-export function databaseUrl(
+export const databaseUrl = (
   environment: {
     AMUQ_ENV?: string | undefined;
     DATABASE_URL?: string | undefined;
   } = process.env,
-): string {
+): string => {
   applicationEnvironment(environment);
   const value = environment.DATABASE_URL;
   if (!value) {
     throw new Error("DATABASE_URL is required");
   }
   return value;
-}
+};
 
-export function createDatabasePool(
+export const createDatabasePool = (
   connectionString: string,
   queryTimeout = databaseProbeTimeoutMs,
-): Pool {
+): Pool => {
   // ponytail: one connection is enough for foundation probes; size service pools from Railway limits before adding workload.
   return new Pool({
     connectionString,
@@ -45,17 +45,19 @@ export function createDatabasePool(
     options: `-c statement_timeout=${queryTimeout} -c lock_timeout=${queryTimeout}`,
     query_timeout: queryTimeout,
   });
-}
+};
 
-export async function assertDatabaseSchema(
+export const assertDatabaseSchema = async (
   connectionString: string,
   client: QueryClient,
-): Promise<void> {
+): Promise<void> => {
   await assertDrizzleSchema(client);
   await assertPgBossSchema(connectionString);
-}
+};
 
-export async function assertDrizzleSchema(client: QueryClient): Promise<void> {
+export const assertDrizzleSchema = async (
+  client: QueryClient,
+): Promise<void> => {
   const target = readMigrationFiles(migrationConfig).at(-1);
   if (!target) {
     throw new Error("No Drizzle migration target exists");
@@ -71,11 +73,11 @@ export async function assertDrizzleSchema(client: QueryClient): Promise<void> {
   ) {
     throw new Error("Database schema is not at the target Drizzle version");
   }
-}
+};
 
-export async function assertPgBossSchema(
+export const assertPgBossSchema = async (
   connectionString: string,
-): Promise<void> {
+): Promise<void> => {
   const boss = new PgBoss({
     ...pgBossDatabaseOptions(connectionString),
     migrate: false,
@@ -89,12 +91,12 @@ export async function assertPgBossSchema(
   } finally {
     await boss.stop({ graceful: false });
   }
-}
+};
 
-export function pgBossDatabaseOptions(
+export const pgBossDatabaseOptions = (
   connectionString: string,
   queryTimeout = databaseProbeTimeoutMs,
-) {
+) => {
   return {
     connectionString,
     connectionTimeoutMillis: databaseProbeTimeoutMs,
@@ -102,11 +104,11 @@ export function pgBossDatabaseOptions(
     options: `-c statement_timeout=${queryTimeout} -c lock_timeout=${queryTimeout}`,
     query_timeout: queryTimeout,
   } satisfies ConstructorOptions & Pick<PoolConfig, "query_timeout">;
-}
+};
 
-export function assertPgBossMigrationsComplete(
+export const assertPgBossMigrationsComplete = (
   statuses: BamStatusSummary[],
-): void {
+): void => {
   const incomplete = statuses.find(
     ({ count, status }) => count > 0 && status !== "completed",
   );
@@ -116,4 +118,4 @@ export function assertPgBossMigrationsComplete(
     throw new Error("pg-boss background migration failed");
   }
   throw new Error("pg-boss background migration is not complete");
-}
+};

@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 
-import { runMigrationSteps, waitForPgBossMigrations } from "./migrations.js";
-import { assertPgBossMigrationsComplete } from "./database.js";
+import { assertPgBossMigrationsComplete } from "#api/db/database";
+import { runMigrationSteps, waitForPgBossMigrations } from "#api/db/migrations";
 
 describe("database migrations", () => {
   it("runs Drizzle before pg-boss while holding the advisory lock", async () => {
