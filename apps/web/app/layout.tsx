@@ -1,17 +1,22 @@
+import "./globals.css";
+
+import { ToastProvider } from "@web/components/ui/toast-provider";
 import type { Metadata } from "next";
 import type { ReactNode } from "react";
 
 export const metadata: Metadata = {
   title: "AMUQ",
-  description: "시험 대비를 위한 비공개 문제은행",
+  description: "아무 자료나 Question으로 바꾸는 개인 학습 서비스",
 };
 
-export default function RootLayout({
-  children,
-}: Readonly<{ children: ReactNode }>) {
+const RootLayout = ({ children }: Readonly<{ children: ReactNode }>) => {
   return (
     <html lang="ko">
-      <body>{children}</body>
+      <body>
+        <ToastProvider>{children}</ToastProvider>
+      </body>
     </html>
   );
-}
+};
+
+export default RootLayout;
