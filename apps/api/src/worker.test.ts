@@ -1,37 +1,190 @@
+import { execFileSync } from "node:child_process";
 import { EventEmitter } from "node:events";
-
 import { describe, expect, it, vi } from "vitest";
-
 import {
   startWorker,
-  workerDatabaseOptions,
   type WorkerBoss,
-} from "./worker.js";
+  workerDatabaseOptions,
+} from "#api/worker";
 
-function fakeRuntime() {
+const fakeRuntime = () => {
   return Object.assign(new EventEmitter(), {
     exitCode: undefined,
   });
-}
+};
 
-function fakeBoss(overrides: Partial<WorkerBoss> = {}): WorkerBoss {
+const fakeBoss = (overrides: Partial<WorkerBoss> = {}): WorkerBoss => {
   return {
+    createQueue: vi.fn(async () => undefined),
+    getDb: vi.fn(() => ({ executeSql: vi.fn(async () => ({ rows: [] })) })),
     on: vi.fn(),
+    schedule: vi.fn(async () => undefined),
+    send: vi.fn(async () => "job-id"),
     start: vi.fn(async () => undefined),
     stop: vi.fn(async () => undefined),
+    work: vi.fn(async () => "worker-id"),
     ...overrides,
   };
-}
+};
 
-function deferred() {
+const deferred = () => {
   let resolve!: () => void;
   const promise = new Promise<void>((done) => {
     resolve = done;
   });
   return { promise, resolve };
-}
+};
 
 describe("worker runtime", () => {
+  it("reaches graceful stop even while the fresh-mail query is stalled", async () => {
+    vi.useFakeTimers();
+    const check = deferred();
+    const database = {
+      executeSql: vi.fn(async () => {
+        await check.promise;
+        return { rows: [] };
+      }),
+    };
+    const boss = fakeBoss({ getDb: () => database });
+    const worker = await startWorker({
+      boss,
+      connectionString: "postgresql://localhost/amuq",
+      emailDelivery: {
+        config: {
+          apiKey: "re_test",
+          authTokenSecret: "a".repeat(32),
+          from: "a@example.com",
+          webOrigin: "https://example.com",
+        },
+      },
+      runtime: fakeRuntime(),
+      verifySchema: async () => {},
+      logInfo: vi.fn(),
+      logError: vi.fn(),
+    });
+    try {
+      await vi.advanceTimersByTimeAsync(2_000);
+      const stopped = worker.shutdown();
+      await Promise.resolve();
+      expect(boss.stop).toHaveBeenCalledWith({
+        graceful: true,
+        timeout: 30_000,
+      });
+      check.resolve();
+      await stopped;
+    } finally {
+      check.resolve();
+      await worker.shutdown();
+      vi.useRealTimers();
+    }
+  });
+
+  it("logs only the first consecutive fresh-mail failure and retries after recovery", async () => {
+    vi.useFakeTimers();
+    let broken = true;
+    const logError = vi.fn();
+    const database = {
+      executeSql: vi.fn(async () => {
+        if (broken) throw new Error("database unavailable");
+        return { rows: [] };
+      }),
+    };
+    const boss = fakeBoss({ getDb: () => database });
+    const worker = await startWorker({
+      boss,
+      connectionString: "postgresql://localhost/amuq",
+      emailDelivery: {
+        config: {
+          apiKey: "re_test",
+          authTokenSecret: "a".repeat(32),
+          from: "a@example.com",
+          webOrigin: "https://example.com",
+        },
+      },
+      runtime: fakeRuntime(),
+      verifySchema: async () => {},
+      logInfo: vi.fn(),
+      logError,
+    });
+    try {
+      await vi.advanceTimersByTimeAsync(6_000);
+      expect(logError).toHaveBeenCalledTimes(1);
+      broken = false;
+      await vi.advanceTimersByTimeAsync(2_000);
+      broken = true;
+      await vi.advanceTimersByTimeAsync(2_000);
+      expect(logError).toHaveBeenCalledTimes(2);
+    } finally {
+      await worker.shutdown();
+      vi.useRealTimers();
+    }
+  });
+
+  it("wakes fresh mail within two seconds without accumulating wakeups and stops polling on shutdown", async () => {
+    vi.useFakeTimers();
+    const database = {
+      executeSql: vi.fn(async (sql: string) => ({
+        rows: sql.includes("freshMail") ? [{ freshMail: true }] : [],
+      })),
+    };
+    let handler: (() => Promise<unknown>) | undefined;
+    const boss = fakeBoss({
+      getDb: () => database,
+      work: vi.fn(async (_name, registered) => {
+        handler = registered;
+        return "worker-id";
+      }),
+    });
+    const worker = await startWorker({
+      boss,
+      connectionString: "postgresql://localhost/amuq",
+      emailDelivery: {
+        config: {
+          apiKey: "re_test",
+          authTokenSecret: "a".repeat(32),
+          from: "AMUQ <account@example.com>",
+          webOrigin: "https://example.com",
+        },
+        sendEmail: vi.fn(),
+      },
+      runtime: fakeRuntime(),
+      verifySchema: async () => {},
+      logInfo: vi.fn(),
+      logError: vi.fn(),
+    });
+    try {
+      expect(boss.send).toHaveBeenCalledTimes(1);
+      await vi.advanceTimersByTimeAsync(2_000);
+      expect(boss.send).toHaveBeenCalledTimes(2);
+      await vi.advanceTimersByTimeAsync(8_000);
+      expect(boss.send).toHaveBeenCalledTimes(2);
+      await handler?.();
+      await vi.advanceTimersByTimeAsync(2_000);
+      expect(boss.send).toHaveBeenCalledTimes(3);
+      await worker.shutdown();
+      const reads = database.executeSql.mock.calls.length;
+      await vi.advanceTimersByTimeAsync(10_000);
+      expect(database.executeSql).toHaveBeenCalledTimes(reads);
+    } finally {
+      await worker.shutdown();
+      vi.useRealTimers();
+    }
+  });
+
+  it("loads TypeScript source in Node strip-only mode", () => {
+    execFileSync(
+      process.execPath,
+      [
+        "--conditions=development",
+        "--experimental-strip-types",
+        "--input-type=module",
+        "--eval",
+        'await import("#api/worker");',
+      ],
+      { cwd: new URL("../", import.meta.url), timeout: 10_000 },
+    );
+  });
+
   it("uses one non-migrating pg-boss connection", () => {
     expect(workerDatabaseOptions("postgresql://localhost/amuq")).toMatchObject({
       application_name: "amuq-worker",
@@ -64,6 +217,79 @@ describe("worker runtime", () => {
     expect(events).toEqual(["verify", "start", "ready"]);
     expect(once).toHaveBeenCalledTimes(2);
     await worker.shutdown();
+  });
+
+  it("registers a scheduled email outbox worker and scans immediately", async () => {
+    const database = {
+      executeSql: vi.fn(async () => ({ rows: [] })),
+    };
+    let handler: (() => Promise<unknown>) | undefined;
+    const boss = fakeBoss({
+      getDb: vi.fn(() => database),
+      work: vi.fn(async (_name, registeredHandler) => {
+        handler = registeredHandler;
+        return "worker-id";
+      }),
+    });
+
+    const worker = await startWorker({
+      boss,
+      connectionString: "postgresql://localhost/amuq",
+      emailDelivery: {
+        config: {
+          apiKey: "re_test",
+          authTokenSecret: "a".repeat(32),
+          from: "AMUQ <account@example.com>",
+          webOrigin: "https://example.com",
+        },
+        sendEmail: vi.fn(),
+      },
+      logError: vi.fn(),
+      runtime: fakeRuntime(),
+      verifySchema: vi.fn(async () => undefined),
+    });
+
+    expect(boss.createQueue).toHaveBeenCalledWith("send-email");
+    expect(boss.work).toHaveBeenCalledWith("send-email", expect.any(Function));
+    expect(boss.schedule).toHaveBeenCalledWith("send-email", "* * * * *");
+    expect(boss.send).toHaveBeenCalledWith("send-email");
+    await handler?.();
+    expect(database.executeSql).toHaveBeenCalledWith(
+      expect.stringContaining("FROM email_outbox"),
+      [expect.any(Date)],
+    );
+
+    await worker.shutdown();
+  });
+
+  it("stops pg-boss when email worker registration fails after startup", async () => {
+    const registrationError = new Error("queue registration failed");
+    const boss = fakeBoss({
+      createQueue: vi.fn(async () => Promise.reject(registrationError)),
+    });
+    const runtime = fakeRuntime();
+
+    await expect(
+      startWorker({
+        boss,
+        connectionString: "postgresql://localhost/amuq",
+        emailDelivery: {
+          config: {
+            apiKey: "re_test",
+            authTokenSecret: "a".repeat(32),
+            from: "AMUQ <account@example.com>",
+            webOrigin: "https://example.com",
+          },
+        },
+        logError: vi.fn(),
+        runtime,
+        verifySchema: vi.fn(async () => undefined),
+      }),
+    ).rejects.toThrow(registrationError);
+
+    expect(boss.stop).toHaveBeenCalledWith({ graceful: false });
+    expect(runtime.listenerCount("SIGINT")).toBe(0);
+    expect(runtime.listenerCount("SIGTERM")).toBe(0);
   });
 
   it("cleans up startup signals when schema verification fails", async () => {
@@ -142,7 +368,8 @@ describe("worker runtime", () => {
   });
 
   it("stops gracefully once when both shutdown signals arrive", async () => {
-    const boss = fakeBoss();
+    const stopping = deferred();
+    const boss = fakeBoss({ stop: vi.fn(() => stopping.promise) });
     const runtime = fakeRuntime();
     const worker = await startWorker({
       boss,
@@ -154,7 +381,19 @@ describe("worker runtime", () => {
 
     runtime.emit("SIGTERM");
     runtime.emit("SIGINT");
-    await worker.shutdown();
+    let completed = 0;
+    const shutdown = async () => {
+      await worker.shutdown();
+      completed += 1;
+    };
+    const first = shutdown();
+    const second = shutdown();
+
+    await Promise.resolve();
+    expect(completed).toBe(0);
+    stopping.resolve();
+    await Promise.all([first, second]);
+    expect(completed).toBe(2);
 
     expect(boss.stop).toHaveBeenCalledOnce();
     expect(boss.stop).toHaveBeenCalledWith({

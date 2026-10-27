@@ -1,6 +1,11 @@
 import type { Pool } from "pg";
 import { createSession } from "#api/modules/auth/session";
-import { hashOpaqueToken } from "#api/modules/auth/token";
+import {
+  authTokenKeyId,
+  type AuthTokenPurpose,
+  createAuthToken,
+  hashOpaqueToken,
+} from "#api/modules/auth/token";
 
 type AuthDatabase = Pick<Pool, "query">;
 
@@ -66,6 +71,62 @@ export type AuthenticationResult =
     };
 
 export type PasswordAuthenticationResult = AccountLinkRequired | PasswordLogin;
+
+export const issueAuthToken = async (
+  database: AuthDatabase,
+  userId: string,
+  purpose: AuthTokenPurpose,
+  secret: string,
+  now = new Date(),
+): Promise<IssuedAuthToken> => {
+  const token = createAuthToken(purpose, secret, now);
+  const result = await database.query<{ id: string }>(
+    `WITH token AS (
+       INSERT INTO auth_tokens
+         (id, user_id, purpose, token_hash, created_at, expires_at)
+       SELECT $2, id, $3, $4, $5, $6
+         FROM users
+        WHERE id = $1
+       RETURNING id
+     ), outbox AS (
+       INSERT INTO email_outbox (token_id, token_key_id, created_at, updated_at)
+       SELECT id, $7, $5, $5
+         FROM token
+       RETURNING token_id
+     )
+     SELECT token_id::text AS "id" FROM outbox`,
+    [
+      userId,
+      token.id,
+      purpose,
+      token.tokenHash,
+      token.createdAt,
+      token.expiresAt,
+      authTokenKeyId(secret),
+    ],
+  );
+  if (!result.rows[0]) throw new Error("Cannot issue auth token");
+  return { id: result.rows[0].id, rawToken: token.rawToken };
+};
+
+export const consumeAuthToken = async (
+  database: AuthDatabase,
+  purpose: AuthTokenPurpose,
+  rawToken: string,
+  now = new Date(),
+): Promise<string | undefined> => {
+  const result = await database.query<{ userId: string }>(
+    `UPDATE auth_tokens
+       SET consumed_at = $3
+     WHERE purpose = $1
+       AND token_hash = $2
+       AND consumed_at IS NULL
+       AND expires_at > $3
+     RETURNING user_id::text AS "userId"`,
+    [purpose, hashOpaqueToken(rawToken), now],
+  );
+  return result.rows[0]?.userId;
+};
 
 export const issueSession = async (
   database: AuthDatabase,

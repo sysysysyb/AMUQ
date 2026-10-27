@@ -25,6 +25,10 @@ jobs:
           --health-retries 10
     env:
       AMUQ_ENV: test
+      AUTH_TOKEN_SECRET: ci-auth-token-secret-32-bytes-long
+      RESEND_API_KEY: re_ci_not-a-real-api-key
+      RESEND_FROM_EMAIL: "AMUQ <account@example.com>"
+      WEB_ORIGIN: http://localhost:3000
       DATABASE_URL: postgresql://postgres:postgres@localhost:5432/amuq_test
       TEST_DATABASE_URL: postgresql://postgres:postgres@localhost:5432/amuq_test
     steps:
