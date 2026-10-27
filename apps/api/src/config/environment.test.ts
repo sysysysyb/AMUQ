@@ -87,22 +87,51 @@ describe("application environment", () => {
     expect(proxySharedSecret({ AMUQ_ENV: "test" })).toBeUndefined();
   });
 
-  it("uses only configured origins and adds API_ORIGIN outside production", () => {
-    expect(
-      authApiConfig({
-        AMUQ_ENV: "development",
-        API_ORIGIN: "http://localhost:3001",
+  it.each(["development", "test"])(
+    "adds a validated API_ORIGIN in %s",
+    (application) => {
+      expect(
+        authApiConfig({
+          AMUQ_ENV: application,
+          API_ORIGIN: "http://localhost:3001",
+          AUTH_RATE_LIMIT_SECRET: "r".repeat(32),
+          AUTH_TOKEN_SECRET: "a".repeat(32),
+          WEB_ORIGIN: "http://localhost:3000",
+        }),
+      ).toEqual({
+        allowedOrigins: ["http://localhost:3000", "http://localhost:3001"],
+        authTokenSecret: "a".repeat(32),
+        rateLimitSecret: "r".repeat(32),
+        webOrigin: "http://localhost:3000",
+      });
+    },
+  );
+
+  it.each(["development", "test"])(
+    "keeps API_ORIGIN optional and rejects unsafe origins in %s",
+    (application) => {
+      const environment = {
+        AMUQ_ENV: application,
         AUTH_RATE_LIMIT_SECRET: "r".repeat(32),
         AUTH_TOKEN_SECRET: "a".repeat(32),
         WEB_ORIGIN: "http://localhost:3000",
-      }),
-    ).toEqual({
-      allowedOrigins: ["http://localhost:3000", "http://localhost:3001"],
-      authTokenSecret: "a".repeat(32),
-      rateLimitSecret: "r".repeat(32),
-      webOrigin: "http://localhost:3000",
-    });
-  });
+      };
+      expect(authApiConfig(environment).allowedOrigins).toEqual([
+        environment.WEB_ORIGIN,
+      ]);
+      for (const apiOrigin of [
+        "https://api.example/path",
+        "https://user:password@api.example",
+        "ftp://api.example",
+      ]) {
+        expect(() =>
+          authApiConfig({ ...environment, API_ORIGIN: apiOrigin }),
+        ).toThrow(
+          "API_ORIGIN must be an HTTP origin without credentials or a path",
+        );
+      }
+    },
+  );
 
   it("rejects weak secrets, path origins, and production API_ORIGIN", () => {
     const valid = {
@@ -122,7 +151,7 @@ describe("application environment", () => {
     );
     expect(() =>
       authApiConfig({ ...valid, API_ORIGIN: "https://api.example.com" }),
-    ).toThrow("API_ORIGIN is allowed only in development");
+    ).toThrow("API_ORIGIN is not allowed in production");
   });
 
   it("loads Google OIDC only when all provider values are configured", () => {
