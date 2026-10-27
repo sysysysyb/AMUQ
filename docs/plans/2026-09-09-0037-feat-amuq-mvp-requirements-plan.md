@@ -319,19 +319,19 @@ flowchart TB
 └─ tsconfig.base.json
 ```
 
-| 영역      | 결정                                                     | 이유와 경계                                                                                                                                                                               |
-| --------- | -------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 영역      | 결정                                                     | 이유와 경계                                                                                                                                                                                                                                                                                                                                         |
+| --------- | -------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | 웹        | Next.js App Router + TypeScript, Vercel                  | 승인된 웹 기준선을 유지하고 일반 서버 상태는 동일 출처 `/api` 프록시를 통해 호출한다. R2가 업로드 전에 파일 크기를 50MB로 제한하지 못하면, 브라우저가 PDF를 Railway API로 보내고 API가 데이터를 조금씩 R2에 전달하면서 50MB를 넘는 즉시 중단하는 대체 경로를 사용한다. 이 경로는 5분 동안 한 번만 사용할 수 있는 사용자별 업로드 토큰으로 보호한다. |
-| API       | Fastify 5 + TypeScript, Railway                          | JSON Schema로 요청을 검증하고 Fastify의 `inject` 통합 테스트와 Pino 로그를 사용한다.                                                                                                       |
-| DB        | PostgreSQL + Drizzle ORM/Kit                             | 관계와 `CHECK`, `UNIQUE`, 외래 키, 트랜잭션을 우선하고 생성된 마이그레이션 SQL을 코드 리뷰에 포함한다.                                                                                       |
-| worker    | 같은 API 패키지의 `pg-boss` worker, 별도 Railway service | 별도 메시지 브로커 없이 PostgreSQL에서 재시도, 중복 방지와 예약 정리를 처리한다.                                                                                                          |
-| 인증      | 서버 소유 opaque session, Argon2id, Google OIDC          | 클라이언트가 보낸 사용자 ID를 신뢰하지 않고 이메일과 Google 계정을 한 사용자에게 명시적으로 연결한다.                                                                                    |
-| 파일      | 비공개 Cloudflare R2                                     | 자동 저장 암호화와 객체 수명 주기 규칙으로 개인 PDF 삭제 계약을 보강한다.                                                                                                                 |
-| 이메일    | Resend                                                   | 소량의 인증 및 재설정 메일에 필요한 API, 수신 거부 관리와 webhook을 적은 운영 부담으로 제공한다.                                                                                             |
-| AI        | U04에서 선정한 단일 생성 공급자 API                      | OpenAI, Google, Anthropic 후보를 평가한 뒤 PDF 분석과 문제 생성에는 하나만 연결한다. 공급자별 보존 최소화 설정과 파일 삭제를 적용하고 모든 결과를 사용자 검토 전 초안으로 취급한다.          |
-| 차트      | Recharts                                                 | 승인된 점수 추이 차트의 반응형 축, 포인트, 키보드 툴팁을 직접 SVG로 다시 만들지 않는다. 같은 데이터를 표로도 제공한다.                                                                      |
-| 오류 관측 | Sentry                                                   | 프론트엔드, API, worker의 예외를 배포 버전과 연결한다. Session Replay, profiling과 전체 로그 수집은 사용하지 않는다.                                                                         |
-| 제품 분석 | PostHog                                                  | 명시적 이벤트로 핵심 퍼널과 이동 경로를 측정한다. 자동 수집 확대, feature flag와 실험은 MVP에서 사용하지 않는다.                                                                          |
+| API       | Fastify 5 + TypeScript, Railway                          | JSON Schema로 요청을 검증하고 Fastify의 `inject` 통합 테스트와 Pino 로그를 사용한다.                                                                                                                                                                                                                                                                |
+| DB        | PostgreSQL + Drizzle ORM/Kit                             | 관계와 `CHECK`, `UNIQUE`, 외래 키, 트랜잭션을 우선하고 생성된 마이그레이션 SQL을 코드 리뷰에 포함한다.                                                                                                                                                                                                                                              |
+| worker    | 같은 API 패키지의 `pg-boss` worker, 별도 Railway service | 별도 메시지 브로커 없이 PostgreSQL에서 재시도, 중복 방지와 예약 정리를 처리한다.                                                                                                                                                                                                                                                                    |
+| 인증      | 서버 소유 opaque session, Argon2id, Google OIDC          | 클라이언트가 보낸 사용자 ID를 신뢰하지 않고 이메일과 Google 계정을 한 사용자에게 명시적으로 연결한다.                                                                                                                                                                                                                                               |
+| 파일      | 비공개 Cloudflare R2                                     | 자동 저장 암호화와 객체 수명 주기 규칙으로 개인 PDF 삭제 계약을 보강한다.                                                                                                                                                                                                                                                                           |
+| 이메일    | Resend                                                   | 소량의 인증 및 재설정 메일에 필요한 API, 수신 거부 관리와 webhook을 적은 운영 부담으로 제공한다.                                                                                                                                                                                                                                                    |
+| AI        | U04에서 선정한 단일 생성 공급자 API                      | OpenAI, Google, Anthropic 후보를 평가한 뒤 PDF 분석과 문제 생성에는 하나만 연결한다. 공급자별 보존 최소화 설정과 파일 삭제를 적용하고 모든 결과를 사용자 검토 전 초안으로 취급한다.                                                                                                                                                                 |
+| 차트      | Recharts                                                 | 승인된 점수 추이 차트의 반응형 축, 포인트, 키보드 툴팁을 직접 SVG로 다시 만들지 않는다. 같은 데이터를 표로도 제공한다.                                                                                                                                                                                                                              |
+| 오류 관측 | Sentry                                                   | 프론트엔드, API, worker의 예외를 배포 버전과 연결한다. Session Replay, profiling과 전체 로그 수집은 사용하지 않는다.                                                                                                                                                                                                                                |
+| 제품 분석 | PostHog                                                  | 명시적 이벤트로 핵심 퍼널과 이동 경로를 측정한다. 자동 수집 확대, feature flag와 실험은 MVP에서 사용하지 않는다.                                                                                                                                                                                                                                    |
 
 ### Key Technical Decisions
 
@@ -477,7 +477,7 @@ Resend는 이메일 인증, 비밀번호 재설정과 계정 상태 알림만 �
 
 - AMUQ는 소수의 인증 및 재설정 메일만 보낸다. Resend는 REST API와 공식 SDK, 도메인 인증, 수신 거부 관리, 전달 및 반송 webhook과 발송 요청용 idempotency key를 제공하므로 이 범위에 맞는다.
 - Postmark의 Message Stream 분리, 7~365일 맞춤 보존과 Data Removal API는 여러 메일 흐름과 세밀한 보존 통제가 필요할 때 유리하다. 현재 범위에서는 Resend의 단순한 설정과 중복 발송 방지가 더 직접적인 이점이다.
-- Resend의 Free, Pro, Scale 요금제는 메일 본문과 전달 로그를 30일 보존한다. 인증 및 재설정 메일에는 필요한 안내와 1회용 링크만 넣고 열람과 클릭 추적은 끈다. 인증 token은 24시간, 재설정 token은 30분 안에 만료되므로 보존 기간에 다시 사용할 수 없다.
+- Resend의 Free, Pro, Scale 요금제는 메일 본문과 전달 로그를 30일 보존한다. 가입 인증 메일에는 10분 유효한 6자리 번호, 재설정 메일에는 30분 유효한 1회용 링크와 필요한 안내만 넣고 열람과 클릭 추적은 끈다. 가입 번호와 재설정 token은 만료·소비 뒤 다시 사용할 수 없다.
 - 메일 제공자 호출은 DB transaction 안에서 직접 수행하지 않는다. 사용자 상태 변경과 `email_outbox` 삽입을 하나의 transaction으로 확정하고 worker가 발송 및 재시도한다.
 - outbox의 안정적인 업무 고유 키를 발송 전에 저장하고 같은 값을 Resend idempotency key로 모든 재시도에 재사용한다. Resend의 24시간 key 보존 안에서 자동 재시도하며, 응답 유실 상태가 그보다 길어지면 자동 재발송하지 않고 운영 확인 대상으로 전환한다.
 - webhook은 서명을 검증하고 event id를 unique로 저장한 뒤 전달, 반송, suppression 상태만 반영한다. 메일 본문은 AMUQ DB와 로그에 저장하지 않는다.
@@ -552,20 +552,21 @@ PostHog의 목적은 “사용자가 어느 흐름을 거쳐 어디에서 중단
 
 기존 `docs/planning/question-schema-and-data-model-v1.md`의 revision와 attempt 모델을 유지하되 활성 Product Contract에 맞춰 다음 그룹을 구현한다.
 
-| 그룹         | 핵심 테이블                                                                                                         | 주요 불변식                                                                                                                                  |
-| ------------ | ------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------- |
-| 인증         | `users`, `auth_identities`, `sessions`, `verification_tokens`, `password_reset_tokens`, `account_deletion_requests` | 검증 전 로그인 금지, Google `sub` 식별, raw token 비저장, token 1회 사용                                                                     |
-| 남용 제한    | `rate_limit_counters`                                                                                               | 주체 HMAC, 작업, 시간창 조합을 unique로 유지한다. IP와 이메일 원문은 저장하지 않고, 만료 시 다시 허용하거나 행을 삭제하며, 비용성 작업을 enqueue하기 전에 원자적으로 차감한다. |
-| 이메일       | `email_outbox`, `email_delivery_events`                                                                             | 업무 고유 키 unique, provider event id unique, 상태 변경과 outbox 원자적 저장                                                                |
-| 소유권       | `question_banks`, `bank_sections`, `demo_sessions`                                                                  | user 또는 demo session 중 정확히 한 owner, title-confirmed 영구 삭제, 사용자용 archive 상태 없음                                             |
-| 소스 및 작업 | `source_materials`, `generation_jobs`, `generation_job_sections`, `cleanup_tasks`                                   | owner-bound storage key, 상태 전이 검증, job idempotency, terminal cleanup 추적                                                              |
-| 초안         | `question_drafts`, `draft_options`, `draft_sources`, `duplicate_candidates`                                         | schema와 semantic validation 상태, ready revision과 분리, 후보는 자동 삭제 및 차단 금지                                                      |
-| 확정 문제    | `questions`, `question_revisions`, `question_options`, `question_revision_sources`                                  | revision 불변, 정답 option FK, archived 문제는 신규 출제 제외 또는 과거 attempt 유지                                                         |
-| 학습         | `study_sessions`, `question_attempts`, `bookmarks`                                                                  | session별 revision와 순서 고정, 미응답 보존, 서버 채점, submit 1회                                                                           |
+| 그룹         | 핵심 테이블                                                                                                                               | 주요 불변식                                                                                                                                                                                             |
+| ------------ | ----------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 인증         | `users`, `auth_identities`, `sessions`, `auth_signup_attempts`, `auth_signup_codes`, `password_reset_tokens`, `account_deletion_requests` | 소유권 확인 전 계정·비밀번호 생성 금지, 미인증 비밀번호 로그인 금지, Google `sub` 식별, 번호·증명·token 원문 비저장, 증명·reset token 1회 소비. 구 `verification_tokens`는 퇴역 호환 자료로만 유지한다. |
+| 남용 제한    | `rate_limit_counters`                                                                                                                     | 주체 HMAC, 작업, 시간창 조합을 unique로 유지한다. IP와 이메일 원문은 저장하지 않고, 만료 시 다시 허용하거나 행을 삭제하며, 비용성 작업을 enqueue하기 전에 원자적으로 차감한다.                          |
+| 이메일       | `email_outbox`, `email_delivery_events`                                                                                                   | 업무 고유 키 unique, provider event id unique, 상태 변경과 outbox 원자적 저장                                                                                                                           |
+| 소유권       | `question_banks`, `bank_sections`, `demo_sessions`                                                                                        | user 또는 demo session 중 정확히 한 owner, title-confirmed 영구 삭제, 사용자용 archive 상태 없음                                                                                                        |
+| 소스 및 작업 | `source_materials`, `generation_jobs`, `generation_job_sections`, `cleanup_tasks`                                                         | owner-bound storage key, 상태 전이 검증, job idempotency, terminal cleanup 추적                                                                                                                         |
+| 초안         | `question_drafts`, `draft_options`, `draft_sources`, `duplicate_candidates`                                                               | schema와 semantic validation 상태, ready revision과 분리, 후보는 자동 삭제 및 차단 금지                                                                                                                 |
+| 확정 문제    | `questions`, `question_revisions`, `question_options`, `question_revision_sources`                                                        | revision 불변, 정답 option FK, archived 문제는 신규 출제 제외 또는 과거 attempt 유지                                                                                                                    |
+| 학습         | `study_sessions`, `question_attempts`, `bookmarks`                                                                                        | session별 revision와 순서 고정, 미응답 보존, 서버 채점, submit 1회                                                                                                                                      |
 
 중요 transaction:
 
-- **이메일 가입:** user, identity, verification token, outbox를 함께 저장한다. 하나라도 실패하면 사용자도 만들지 않는다.
+- **가입 번호 발급:** 계정 없이 가입 시도·번호와 발송 outbox를 함께 저장한다. 하나라도 실패하면 번호와 발송 요청을 모두 취소한다.
+- **이메일 가입 완료:** 소유권 확인 뒤 사용자·password identity의 생성 또는 허용된 복구와 가입 증명 소비를 함께 확정한다. 중간 실패는 계정 변경과 증명 소비를 모두 취소하며 새 인증 메일을 만들지 않는다.
 - **Google identity 연결:** link request 검증, identity unique 확인, 기존 세션 회전과 연결을 한 transaction에서 처리한다.
 - **문서 구성 확정:** 모든 페이지가 정확히 한 section 또는 제외 범위에 속하는지 잠금 후 검증하고 generation snapshot을 만든다.
 - **문제 최종 확정:** 선택된 draft를 immutable revision으로 변환하고 bank count를 갱신한 뒤 cleanup task를 같은 transaction에 넣는다.
@@ -579,19 +580,19 @@ MVP에서는 오답 및 통계 projection과 materialized view를 만들지 않�
 
 ### HTTP and Worker Boundaries
 
-| 경계                          | 책임                                                                                                                                                       |
-| ----------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `/api/auth/*`                 | 가입, 인증, 로그인, 로그아웃, 비밀번호 재설정, Google 시작, 콜백, 연결                                                                                       |
-| `/api/account/*`              | 현재 사용자, 재인증, 삭제 예약과 취소                                                                                                                        |
-| `/api/demo-sessions`          | 6시간 demo session과 격리 bank 생성                                                                                                                        |
-| `/api/banks/*`                | 소유자 범위의 목록 및 상세 조회, 이름 변경과 영구 삭제                                                                                                        |
-| `/api/banks/:bankId/uploads/*`| presigned PUT 발급, 업로드 완료 검증과 취소                                                                                                                |
-| `/api/generation-jobs/*`      | 분석 상태, 분류 수정과 확정, 생성 설정, 생성과 재시도                                                                                                        |
-| `/api/drafts/*`               | 필터, 상세 조회, 수정과 삭제, 중복 비교와 일괄 확정                                                                                                          |
-| `/api/questions/*`            | 확정 문제 목록, revision 추가와 archive                                                                                                                    |
-| `/api/study-sessions/*`       | 시작, 답안 저장, 재개, 제출과 relay 확인                                                                                                                   |
-| `/api/banks/:bankId/summary`  | 학습 홈과 기간별 통계 read model                                                                                                                           |
-| worker jobs                   | `analyze_pdf`, `generate_questions`, `detect_duplicates`, `send_email`, `auto_submit_exam`, `expire_demo`, `cleanup_material`, `finalize_account_deletion` |
+| 경계                           | 책임                                                                                                                                                       |
+| ------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `/api/auth/*`                  | 가입, 인증, 로그인, 로그아웃, 비밀번호 재설정, Google 시작, 콜백, 연결                                                                                     |
+| `/api/account/*`               | 현재 사용자, 재인증, 삭제 예약과 취소                                                                                                                      |
+| `/api/demo-sessions`           | 6시간 demo session과 격리 bank 생성                                                                                                                        |
+| `/api/banks/*`                 | 소유자 범위의 목록 및 상세 조회, 이름 변경과 영구 삭제                                                                                                     |
+| `/api/banks/:bankId/uploads/*` | presigned PUT 발급, 업로드 완료 검증과 취소                                                                                                                |
+| `/api/generation-jobs/*`       | 분석 상태, 분류 수정과 확정, 생성 설정, 생성과 재시도                                                                                                      |
+| `/api/drafts/*`                | 필터, 상세 조회, 수정과 삭제, 중복 비교와 일괄 확정                                                                                                        |
+| `/api/questions/*`             | 확정 문제 목록, revision 추가와 archive                                                                                                                    |
+| `/api/study-sessions/*`        | 시작, 답안 저장, 재개, 제출과 relay 확인                                                                                                                   |
+| `/api/banks/:bankId/summary`   | 학습 홈과 기간별 통계 read model                                                                                                                           |
+| worker jobs                    | `analyze_pdf`, `generate_questions`, `detect_duplicates`, `send_email`, `auto_submit_exam`, `expire_demo`, `cleanup_material`, `finalize_account_deletion` |
 
 - HTTP handler는 인증, 요청 검증과 응답 변환만 담당한다. 트랜잭션 규칙은 module service에 둔다.
 - 공개 API 응답은 `AuthorQuestionDTO`, `TestQuestionDTO`, `ReviewQuestionDTO`를 분리한다. `TestQuestionDTO`에는 정답, 해설, 출처를 포함하지 않는다.
@@ -624,15 +625,15 @@ MVP에서는 오답 및 통계 projection과 materialized view를 만들지 않�
 - **Outcome:** 이메일/비밀번호와 Google 로그인, 인증 및 재설정, 명시적 identity 연결과 안전한 서버 세션을 제공한다.
 - **Primary files:** `apps/api/src/modules/auth/schema.ts`, `apps/api/src/modules/auth/service.ts`, `apps/api/src/modules/auth/routes.ts`, `apps/api/src/modules/auth/session.ts`, `apps/api/src/modules/email/outbox.ts`, `apps/api/src/jobs/send-email.ts`, `apps/web/app/(auth)/*`, `apps/web/features/auth/*`, `packages/contracts/src/auth.ts`.
 - **Work:**
-  1. Argon2id password, hashed one-time verification/reset token과 `__Host-session` cookie를 구현한다.
-  2. 24시간 인증 token, 30분 reset token, 7일 idle 및 30일 absolute session 만료와 인증 상태 변경 후 session rotation을 적용한다.
+  1. 이메일 소유권 확인 뒤에만 Argon2id password와 계정을 만든다. 가입 시도·번호·증명은 원문 대신 검증값을 저장하고 reset token과 `__Host-session` cookie를 유지한다. 세부 계약은 [승인된 가입 보완 계획](2026-10-21-1856-fix-signup-email-verification-plan.md)을 따른다.
+  2. 가입 번호 10분·오입력 5회, 인증 뒤 가입 증명 30분, 재전송 60초 간격·첫 재전송부터 1시간 3회를 적용한다. reset token 30분, session idle 7일·absolute 30일과 인증 상태 변경 뒤 rotation은 유지한다. 구 가입 링크 활성화는 종료하고 엄격한 미인증 password-only 계정만 새 소유권 증명으로 복구한다.
   3. Google OIDC는 stable `sub`를 사용하고 같은 email만으로 자동 연결하지 않는다. 기존 password 재확인과 동의를 거친 10분 link request만 허용한다.
   4. Resend outbox와 signed webhook을 구현하고 사용자 상태 변경과 발송 요청을 원자적으로 기록한다. 발송 전 확정한 업무 고유 키를 Resend idempotency key로 재사용하고 open/click tracking을 끈다.
-  5. Figma의 가입, 인증 대기, 로그인, 재설정, Google 취소 및 오류 상태를 정확한 node에서 구현한다.
+  5. Figma의 가입 번호 입력·인증 완료·만료 재인증과 로그인·재설정·Google 취소·오류 상태를 정확한 node에서 확인한다. 가입 보완 초안의 양식 차이는 사용자 수동 수정 대상으로 남기며 기능 계약은 승인된 가입 보완 계획을 따른다.
   6. 가입, 인증 재발송, 비밀번호 재설정은 검증된 proxy 경계의 client address와 정규화한 식별자별 PostgreSQL rate limit을 발송 enqueue 전에 적용하고 초과 시 `429`와 `Retry-After`를 반환한다. 키는 원문이 아닌 환경별 HMAC으로 저장하고 만료 행을 정리한다.
 - **Tests:** password/token unit, session expiry/rotation, CSRF/Origin, open redirect, token replay, email enumeration, Google state/nonce/link conflict, outbox 요청 성공 후 응답 유실, worker 종료, 재전달 idempotency, webhook signature/replay, rate limit, raw 식별자 부재, 환경 간 digest 분리, 만료 복구, cross-user denial.
-- **E2E:** 이메일 가입→인증→로그인, 잘못된 로그인, reset, Google 취소/오류를 desktop과 mobile에서 검증한다.
-- **Completion:** 인증되지 않은 사용자는 private API에 접근할 수 없다. 애플리케이션 로그, Sentry, PostHog에는 token과 개인 내용이 없고 Resend에는 만료가 짧은 1회용 링크를 포함한 최소 인증 및 재설정 메일만 남는다.
+- **E2E:** 이메일 입력→번호 인증→비밀번호 설정→가입→로그인, 현재 탭의 입력 유지 재인증·새로고침 초기화, 잘못된 로그인, reset, Google 취소/오류를 desktop과 mobile에서 검증한다.
+- **Completion:** 인증되지 않은 사용자는 private API에 접근할 수 없다. 애플리케이션 로그, Sentry, PostHog에는 token과 개인 내용이 없고 Resend에는 만료가 짧은 가입 번호 또는 재설정 링크를 포함한 최소 메일만 남는다. 활성 계정 비밀번호는 가입 재시도로 덮어쓰지 않고 Google-only 계정에는 추가 Google 증명을 요구한다.
 
 ### U03 — 비공개 문제은행 shell과 문제 계약
 
@@ -887,20 +888,20 @@ flowchart LR
 
 ## Risks and Dependencies
 
-| Risk / dependency                | Impact                            | Mitigation and evidence                                                                                                                              |
-| -------------------------------- | --------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------- |
-| AI 공급자별 언어와 scan 품질 편차 | 잘못된 문제 및 누락               | U04 고정 corpus 평가, source locator 검증, draft 격리, 사용자 확정. 공급자, 모델과 limit은 evidence 전에는 고정하지 않는다.                            |
-| 50MB PDF의 처리시간 및 비용      | timeout, 과금, 나쁜 UX            | page chunking, chapter attempt, concurrency cap, 비용과 latency 기록과 보수적 page/question limit.                                                   |
-| 늦은 AI 응답과 worker redelivery | draft 중복 및 최신 결과 덮어쓰기  | attempt fencing token, unique constraint, current attempt conditional write와 crash/retry integration test.                                          |
-| R2와 provider 파일 잔존          | 개인정보 및 신뢰 위반             | 즉시 접근 차단, delete→absence 확인, cleanup task 재시도, lifecycle 안전망과 terminal alert.                                                         |
-| 답안 저장 및 자동 제출 경합      | 잘못된 점수                       | answer version, session row lock, 하나의 idempotent submission service와 race test.                                                                  |
-| 인증과 소유권 누락               | 다른 사용자 private data 노출     | session-derived subject, owner 조건을 같은 SQL/transaction에 포함, cross-user denial test를 모든 resource module에 적용.                             |
-| 이메일 전달 실패                 | 인증 및 reset 불가                | outbox, Resend delivery/bounce webhook, resend UI와 safe support code. 메일 content를 DB에 복제하지 않는다.                                          |
-| telemetry의 개인 내용 수집       | 제3자 노출                        | allowlist event schema, Sentry scrubber, PostHog autocapture/Replay 비활성화와 automated forbidden-field tests.                                      |
-| 공개 비용성 경로 남용            | 메일, 저장, AI 비용과 worker 고갈 | 신뢰 proxy 경계, 주체별 PostgreSQL rate limit, enqueue 전 거절, 계정 합산 quota와 복구 test.                                                         |
-| Figma와 구현 drift               | 승인 디자인 훼손                  | node 측정 선행, component/token mapping, scroll contract, matching viewport 비교와 bounded recheck.                                                  |
-| 공급자 가격과 제한 변경          | 예산 및 운영 중단                 | 사용량 dashboard와 budget alert. provider abstraction은 만들지 않고 변경 필요 시 좁은 adapter 경계에서 교체한다.                                     |
-| 외부 계정 또는 도메인 미구성     | production 배포 차단              | U01에서 Vercel와 Railway, U02에서 Resend와 Google, U05에서 R2, U13에서 Sentry와 PostHog test/production project와 DNS와 secret checklist를 검증한다. |
+| Risk / dependency                 | Impact                            | Mitigation and evidence                                                                                                                              |
+| --------------------------------- | --------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------- |
+| AI 공급자별 언어와 scan 품질 편차 | 잘못된 문제 및 누락               | U04 고정 corpus 평가, source locator 검증, draft 격리, 사용자 확정. 공급자, 모델과 limit은 evidence 전에는 고정하지 않는다.                          |
+| 50MB PDF의 처리시간 및 비용       | timeout, 과금, 나쁜 UX            | page chunking, chapter attempt, concurrency cap, 비용과 latency 기록과 보수적 page/question limit.                                                   |
+| 늦은 AI 응답과 worker redelivery  | draft 중복 및 최신 결과 덮어쓰기  | attempt fencing token, unique constraint, current attempt conditional write와 crash/retry integration test.                                          |
+| R2와 provider 파일 잔존           | 개인정보 및 신뢰 위반             | 즉시 접근 차단, delete→absence 확인, cleanup task 재시도, lifecycle 안전망과 terminal alert.                                                         |
+| 답안 저장 및 자동 제출 경합       | 잘못된 점수                       | answer version, session row lock, 하나의 idempotent submission service와 race test.                                                                  |
+| 인증과 소유권 누락                | 다른 사용자 private data 노출     | session-derived subject, owner 조건을 같은 SQL/transaction에 포함, cross-user denial test를 모든 resource module에 적용.                             |
+| 이메일 전달 실패                  | 인증 및 reset 불가                | outbox, Resend delivery/bounce webhook, resend UI와 safe support code. 메일 content를 DB에 복제하지 않는다.                                          |
+| telemetry의 개인 내용 수집        | 제3자 노출                        | allowlist event schema, Sentry scrubber, PostHog autocapture/Replay 비활성화와 automated forbidden-field tests.                                      |
+| 공개 비용성 경로 남용             | 메일, 저장, AI 비용과 worker 고갈 | 신뢰 proxy 경계, 주체별 PostgreSQL rate limit, enqueue 전 거절, 계정 합산 quota와 복구 test.                                                         |
+| Figma와 구현 drift                | 승인 디자인 훼손                  | node 측정 선행, component/token mapping, scroll contract, matching viewport 비교와 bounded recheck.                                                  |
+| 공급자 가격과 제한 변경           | 예산 및 운영 중단                 | 사용량 dashboard와 budget alert. provider abstraction은 만들지 않고 변경 필요 시 좁은 adapter 경계에서 교체한다.                                     |
+| 외부 계정 또는 도메인 미구성      | production 배포 차단              | U01에서 Vercel와 Railway, U02에서 Resend와 Google, U05에서 R2, U13에서 Sentry와 PostHog test/production project와 DNS와 secret checklist를 검증한다. |
 
 ## Deferred Implementation Evidence
 
