@@ -124,8 +124,8 @@ export const authApiConfig = (
   const rateLimitSecret = requiredSecret(environment, "AUTH_RATE_LIMIT_SECRET");
   const webOrigin = parseOrigin(environment, "WEB_ORIGIN", application);
   const apiOrigin = environment.API_ORIGIN;
-  if (apiOrigin && application !== "development") {
-    throw new Error("API_ORIGIN is allowed only in development");
+  if (apiOrigin && application === "production") {
+    throw new Error("API_ORIGIN is not allowed in production");
   }
 
   return {
