@@ -1,11 +1,11 @@
 # Workflow Status
 
-> Updated: 2026-10-27 20:23 KST
+> Updated: 2026-10-27 20:34 KST
 
 ## Current state
 
-- Status: in progress
-- Stage: Stage 6 — Issue #8 / PR3 작업별 로컬 커밋 구성, 묶음 검사 준비
+- Status: review
+- Stage: Stage 6 — Issue #8 / PR3 작업별 커밋과 묶음 검사 및 검토 완료, 사용자 검토와 원격 게시 승인 대기
 
 ## Active work
 
@@ -17,12 +17,14 @@
 
 ## Current checkpoint
 
-- Last completed: 원본 67파일의 내용 보존을 확인한 뒤 가입 429 수정까지 작업별 8개 로컬 커밋 구성. 사용자가 이번 PR3의 커밋 후 묶음 검사를 승인했음
-- Latest verification: 원본 파일과 API 보존 대조 통과. 새 429 회귀 4개에서 수정 전 실패 확인. 최종 묶음 검사 — not run
+- Last completed: 작업별 9개에 검증과 검토 결과 기록 1개를 더한 총 10개 구성. Claude 묶음 검토에 동작 결함과 이관 누락 없었고 P3 2건의 처리 기록
+- Latest verification: 일반 186개와 E2E 84개, 타입, 린트, 포맷과 빌드 — passed. DB 전용 137개는 생략했으며 원본과 커밋별 내부 import 대조 통과
 
 ## Review focus
 
-- None
+- `apps/web/features/auth/lib/use-signup-flow.ts` — JSON이 아닌 429의 기존 재시도 처리
+- `apps/web/components/ui/toast-provider.tsx` — 이동 후 알림 유지와 자동 닫기
+- `docs/issue-reports/issue-8/03-auth-web.md` — 이관과 새 검증, P3 2건의 처리 범위
 
 ## Remaining risk
 
@@ -34,5 +36,5 @@
 
 ## Next action
 
-- Owner: Codex
-- Action: PR3 전체 로컬 커밋의 동작과 누락을 묶어서 검사
+- Owner: User
+- Action: PR3 로컬 10개 커밋 검토 후 원격 push와 PR 생성 승인
