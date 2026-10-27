@@ -1,4 +1,5 @@
 import { randomUUID } from "node:crypto";
+
 import swagger from "@fastify/swagger";
 import swaggerUi from "@fastify/swagger-ui";
 import Fastify, {
@@ -7,15 +8,21 @@ import Fastify, {
   LogController,
   type RawRequestDefaultExpression,
 } from "fastify";
+
 import type { ApplicationEnvironment } from "#api/config/environment";
 import { resolveClientAddress } from "#api/http/client-address";
 import {
   type AuthRoutesOptions,
   registerAuthRoutes,
 } from "#api/modules/auth/routes";
+import {
+  type EmailWebhookOptions,
+  registerEmailWebhook,
+} from "#api/modules/email/webhook";
 
 export interface BuildServerOptions {
   auth?: AuthRoutesOptions;
+  emailWebhook?: EmailWebhookOptions;
   environment?: ApplicationEnvironment;
   onClose?: () => Promise<void>;
   proxySecret?: string;
@@ -209,6 +216,10 @@ export const buildServer = async (options: BuildServerOptions = {}) => {
 
   if (options.auth) {
     await server.register(registerAuthRoutes, options.auth);
+  }
+
+  if (options.emailWebhook) {
+    await server.register(registerEmailWebhook, options.emailWebhook);
   }
 
   if (options.onClose) {
