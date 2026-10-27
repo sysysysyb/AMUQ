@@ -62,6 +62,40 @@ describe("authentication HTTP boundary", () => {
     expect(connect).not.toHaveBeenCalled();
   });
 
+  it("starts Google authorization with a secure flow cookie", async () => {
+    const authDatabase = {
+      query: vi.fn(async () => ({ rows: [] })),
+    } as unknown as Pool;
+    const server = await createServer(authDatabase);
+    const response = await server.inject({
+      method: "POST",
+      url: "/auth/google/start",
+      headers: { origin: "https://web.example" },
+      payload: { returnTo: "https://evil.example/escape" },
+    });
+
+    expect(response.statusCode).toBe(200);
+    const authorizationUrl = new URL(response.json().authorizationUrl);
+    expect(authorizationUrl.origin).toBe("https://accounts.google.com");
+    expect(authorizationUrl.searchParams.get("state")).toMatch(
+      /^[A-Za-z0-9_-]{43}$/,
+    );
+    expect(authorizationUrl.searchParams.get("nonce")).toMatch(
+      /^[A-Za-z0-9_-]{43}$/,
+    );
+    expect(authorizationUrl.searchParams.get("code_challenge_method")).toBe(
+      "S256",
+    );
+    expect(response.headers["set-cookie"]).toMatch(
+      /__Host-google-oauth-[0-9a-f]{32}=/,
+    );
+    expect(response.headers["set-cookie"]).toContain("SameSite=Lax");
+    expect(authDatabase.query).toHaveBeenCalledWith(
+      expect.stringContaining("INSERT INTO auth_oidc_flows"),
+      expect.arrayContaining(["login", "/"]),
+    );
+  });
+
   it("requires a configured exact Origin and keeps validation errors private", async () => {
     const server = await createServer();
     const body = {
