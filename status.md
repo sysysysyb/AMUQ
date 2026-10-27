@@ -5,7 +5,7 @@
 ## Current state
 
 - Status: in progress
-- Stage: Stage 6 — Issue #8 / PR2 일괄 재구성 2/17 후보 검증 완료, 로컬 커밋 진행
+- Stage: Stage 6 — Issue #8 / PR2 일괄 재구성 3/17 후보 검증 완료, 로컬 커밋 진행
 
 ## Active work
 
@@ -17,8 +17,8 @@
 
 ## Current checkpoint
 
-- Last completed: 인증 DB 구조와 migration 중간 상태 검증. 직전 재구성 커밋 `42ab9f0`
-- Latest verification: 타입, 단위 52개, 해당 DB 통합 16개와 린트 — passed
+- Last completed: 비밀번호, 토큰과 세션 공통 보안 중간 상태 검증. 직전 재구성 커밋 `ef8f4d5`
+- Latest verification: 타입, 단위 65개, 해당 DB 통합 18개와 린트 — passed
 
 ## Review focus
 

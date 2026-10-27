@@ -12,16 +12,16 @@ declare module "fastify" {
 export const clientAddressHeader = "x-amuq-client-address";
 export const proxySecretHeader = "x-amuq-proxy-secret";
 
-function matchesSecret(value: string, secret: string): boolean {
+const matchesSecret = (value: string, secret: string): boolean => {
   const actual = Buffer.from(value);
   const expected = Buffer.from(secret);
   return actual.length === expected.length && timingSafeEqual(actual, expected);
-}
+};
 
-export function resolveClientAddress(
+export const resolveClientAddress = (
   request: Pick<FastifyRequest, "headers" | "ip">,
   proxySecret?: string,
-): string {
+): string => {
   const address = request.headers[clientAddressHeader];
   const presentedSecret = request.headers[proxySecretHeader];
   return proxySecret &&
@@ -31,4 +31,4 @@ export function resolveClientAddress(
     matchesSecret(presentedSecret, proxySecret)
     ? address
     : request.ip;
-}
+};
