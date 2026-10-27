@@ -55,6 +55,61 @@ const createPasswordLinkFixture = async () => {
 };
 
 databaseTest("password login budgets", () => {
+  it("keeps the last login admission available after rejected-origin requests", async () => {
+    await migrateDatabase(connectionString!);
+    await createVerifiedPasswordLogin(
+      "a@example.test",
+      "ValidPass1234",
+      "setup",
+      new Date(),
+    );
+    const clientAddress = "192.0.2.9";
+    const subjectHash = hashPasswordLoginSubject(
+      "client_address",
+      [clientAddress],
+      secret,
+    );
+    await consumePasswordLoginIp(admin!, clientAddress, secret);
+    await admin!.query(
+      "UPDATE auth_password_login_limits SET attempt_count = 99 WHERE subject_kind = 'client_address' AND subject_hash = $1",
+      [subjectHash],
+    );
+    const server = await createServer();
+    try {
+      for (const url of ["/auth/login", "/auth/link/password"]) {
+        for (const origin of [undefined, "null", "https://evil.example"]) {
+          const rejected = await server.inject({
+            method: "POST",
+            url,
+            remoteAddress: clientAddress,
+            headers: origin === undefined ? {} : { origin },
+            payload: { email: "a@example.test", password: "ValidPass1234" },
+          });
+          expect(rejected.statusCode).toBe(403);
+          expect(rejected.json().code).toBe("origin_not_allowed");
+        }
+      }
+      const counter = () =>
+        admin!.query(
+          "SELECT attempt_count FROM auth_password_login_limits WHERE subject_kind = 'client_address' AND subject_hash = $1",
+          [subjectHash],
+        );
+      expect((await counter()).rows).toEqual([{ attempt_count: 99 }]);
+      const accepted = await server.inject({
+        method: "POST",
+        url: "/auth/login",
+        remoteAddress: clientAddress,
+        headers: { origin: "http://localhost:3000" },
+        payload: { email: "a@example.test", password: "ValidPass1234" },
+      });
+      expect(accepted.statusCode).toBe(200);
+      expect(accepted.headers["set-cookie"]).toContain("__Host-session=");
+      expect((await counter()).rows).toEqual([{ attempt_count: 100 }]);
+    } finally {
+      await server.close();
+    }
+  });
+
   it("rejects an unverified link owner before pair admission for either password", async () => {
     await migrateDatabase(connectionString!);
     const token = await createPasswordLinkFixture();
@@ -995,11 +1050,11 @@ databaseTest("password login budgets", () => {
       ).rejects.toThrow();
     },
   );
-  it("counts malformed, rejected-origin and invalid-link requests before validation, sharing only the two POST routes", async () => {
+  it("counts malformed and invalid-link requests from allowed Origins, sharing only the two POST routes", async () => {
     await migrateDatabase(connectionString!);
     const server = await createServer();
     try {
-      await server.inject({
+      const rejectedOrigin = await server.inject({
         method: "POST",
         url: "/auth/login?test=1",
         headers: {
@@ -1008,7 +1063,9 @@ databaseTest("password login budgets", () => {
         },
         payload: "{",
       });
-      await server.inject({
+      expect(rejectedOrigin.statusCode).toBe(403);
+      expect(rejectedOrigin.json().code).toBe("origin_not_allowed");
+      const malformed = await server.inject({
         method: "POST",
         url: "/auth/login",
         headers: {
@@ -1017,18 +1074,21 @@ databaseTest("password login budgets", () => {
         },
         payload: "{",
       });
-      await server.inject({
+      expect(malformed.statusCode).toBe(400);
+      const invalidLink = await server.inject({
         method: "POST",
         url: "/auth/link/password",
         headers: { origin: "http://localhost:3000" },
         payload: { consent: true, password: "ValidPass1234" },
       });
+      expect(invalidLink.statusCode).toBe(401);
+      expect(invalidLink.json().code).toBe("account_link_required");
       await server.inject({ method: "GET", url: "/auth/session" });
       const rows = await admin!.query(
         "SELECT subject_kind, attempt_count FROM auth_password_login_limits",
       );
       expect(rows.rows).toEqual([
-        { subject_kind: "client_address", attempt_count: 3 },
+        { subject_kind: "client_address", attempt_count: 2 },
       ]);
     } finally {
       await server.close();
