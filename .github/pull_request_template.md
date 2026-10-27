@@ -1,10 +1,11 @@
-<!-- Write Issue and PR titles and descriptions in Korean, while preserving exact English names for proper nouns and technical terms. -->
+<!-- Write Issue and PR titles and descriptions in English. -->
 <!-- When creating a Pull Request, apply labels that match its type and scope. -->
 
 ## Outcome
 
-- Closes #
+- Closes # <!-- Use Refs # for partial delivery across multiple PRs. -->
 - Requirement IDs:
+- Records: <!-- Commit-pinned links to the PR implementation/review record and the Issue index. -->
 
 ## Main changes
 
