@@ -1,4 +1,6 @@
 import { pathToFileURL } from "node:url";
+
+import { DatabaseError } from "pg";
 import {
   type ConstructorOptions,
   type Db,
@@ -6,6 +8,7 @@ import {
   type StopOptions,
   type WorkHandler,
 } from "pg-boss";
+
 import {
   assertDrizzleSchema,
   assertPgBossSchema,
@@ -19,6 +22,7 @@ import {
   emailDeliveryConfig,
   sendEmailQueue,
 } from "#api/jobs/send-email";
+import { cleanupSignupChallenges } from "#api/modules/auth/signup-challenge";
 import {
   type ResendEmail,
   type ResendEmailResult,
@@ -85,6 +89,7 @@ export const startWorker = async (options: StartWorkerOptions) => {
   let freshMailCheck: Promise<void> | undefined;
   let mailWakeupQueued = false;
   let freshMailFailureLogged = false;
+  let nextSignupCleanupAt = 0;
   const cleanupSignals = () => {
     runtime.removeListener("SIGINT", onSignal);
     runtime.removeListener("SIGTERM", onSignal);
@@ -129,16 +134,32 @@ export const startWorker = async (options: StartWorkerOptions) => {
       await boss.createQueue(sendEmailQueue);
       await boss.work(sendEmailQueue, async () => {
         mailWakeupQueued = false;
-
-        await deliverPendingEmails(boss.getDb(), {
-          ...(config.authTokenPreviousSecret
-            ? { authTokenPreviousSecret: config.authTokenPreviousSecret }
-            : {}),
-          authTokenSecret: config.authTokenSecret,
-          from: config.from,
-          sendEmail,
-          webOrigin: config.webOrigin,
-        });
+        try {
+          await deliverPendingEmails(boss.getDb(), {
+            ...(config.authTokenPreviousSecret
+              ? { authTokenPreviousSecret: config.authTokenPreviousSecret }
+              : {}),
+            authTokenSecret: config.authTokenSecret,
+            from: config.from,
+            sendEmail,
+            webOrigin: config.webOrigin,
+          });
+        } finally {
+          try {
+            if (Date.now() >= nextSignupCleanupAt) {
+              nextSignupCleanupAt = Date.now() + 60_000;
+              await cleanupSignupChallenges(boss.getDb(), new Date());
+            }
+          } catch (error) {
+            const sqlState =
+              error instanceof DatabaseError &&
+              typeof error.code === "string" &&
+              /^[A-Z0-9]{5}$/.test(error.code)
+                ? error.code
+                : "unknown";
+            logError({ code: "signup_cleanup_failed", sqlState });
+          }
+        }
       });
       await boss.schedule(sendEmailQueue, "* * * * *");
       await boss.send(sendEmailQueue);
