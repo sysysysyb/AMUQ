@@ -1,7 +1,9 @@
 import { performance } from "node:perf_hooks";
 import { setTimeout as delay } from "node:timers/promises";
+
 import type { FastifyPluginAsync, FastifyReply } from "fastify";
 import type { Pool } from "pg";
+
 import type { GoogleOidcConfig } from "#api/config/environment";
 import {
   buildGoogleAuthorizationUrl,
@@ -16,12 +18,15 @@ import {
 import { AuthRateLimitExceededError } from "#api/modules/auth/rate-limit";
 import {
   authenticatePassword,
+  completeAccountLinkWithPassword,
   completeGoogleLink,
   completeGoogleLogin,
   completeSignup,
   consumeGoogleOidcFlow,
+  createGoogleLinkFlow,
   createGoogleLoginFlow,
   exchangePasswordResetToken,
+  getAccountLinkStatus,
   getAuthenticatedUser,
   requestPasswordReset,
   resetPassword,
@@ -202,6 +207,15 @@ const passwordLoginResponseSchema = {
     },
   },
 } as const;
+const accountLinkStatusSchema = {
+  type: "object",
+  additionalProperties: false,
+  required: ["email", "requiredProvider"],
+  properties: {
+    email: { type: "string", format: "email" },
+    requiredProvider: { type: "string", enum: ["google", "password"] },
+  },
+} as const;
 const noContentWithCookieSchema = {
   type: "null",
   headers: setCookieHeader,
@@ -235,6 +249,15 @@ const googleStartBodySchema = {
   type: "object",
   additionalProperties: false,
   properties: { returnTo: returnToProperty },
+} as const;
+const passwordAccountLinkBodySchema = {
+  type: "object",
+  additionalProperties: false,
+  required: ["password", "consent"],
+  properties: {
+    password: passwordProperty,
+    consent: { type: "boolean", const: true },
+  },
 } as const;
 const googleCallbackQuerySchema = {
   type: "object",
@@ -646,6 +669,120 @@ export const registerAuthRoutes: FastifyPluginAsync<AuthRoutesOptions> = async (
     },
   );
 
+  server.get(
+    "/auth/link/status",
+    {
+      schema: {
+        operationId: "getAccountLinkStatus",
+        security: [{ accountLinkCookie: [] }],
+        response: {
+          200: accountLinkStatusSchema,
+          401: errorSchema,
+          500: errorSchema,
+        },
+      },
+    },
+    async (request, reply) => {
+      const link = readCookie(request.headers.cookie, accountLinkCookieName);
+      if (!link.token || link.invalid) return accountLinkRequired(reply);
+      const status = await getAccountLinkStatus(options.database, link.token);
+      return status ? reply.send(status) : accountLinkRequired(reply);
+    },
+  );
+
+  server.post<{ Body: { consent: true; password: string } }>(
+    "/auth/link/password",
+    {
+      schema: {
+        operationId: "completePasswordAccountLink",
+        security: [{ accountLinkCookie: [] }],
+        headers: originHeadersSchema,
+        body: passwordAccountLinkBodySchema,
+        response: {
+          200: userWithCookieSchema,
+          400: errorSchema,
+          401: errorSchema,
+          403: errorSchema,
+          429: rateLimitSchema,
+          500: errorSchema,
+        },
+      },
+    },
+    async (request, reply) => {
+      const link = readCookie(request.headers.cookie, accountLinkCookieName);
+      if (!link.token || link.invalid) return accountLinkRequired(reply);
+      const status = await getAccountLinkStatus(options.database, link.token);
+      if (!status || status.requiredProvider !== "password")
+        return accountLinkRequired(reply);
+      const result = await withPasswordLoginAttempt(
+        options.database,
+        status.email,
+        request.clientAddress,
+        options.rateLimitSecret,
+        (attempt) =>
+          completeAccountLinkWithPassword(
+            options.database,
+            link.token!,
+            request.body.password,
+            request.body.consent,
+            () => new Date(),
+            attempt,
+          ),
+      );
+      if (result.status === "invalid_credentials")
+        return invalidCredentials(reply);
+      if (result.status !== "authenticated") return accountLinkRequired(reply);
+      return reply
+        .header("set-cookie", [
+          serializeSessionCookie(result.sessionToken),
+          clearAccountLinkCookie(),
+        ])
+        .send(result.user);
+    },
+  );
+
+  server.post<{ Body: { returnTo?: string } }>(
+    "/auth/link/google",
+    {
+      schema: {
+        operationId: "startGoogleAccountLink",
+        security: [{ accountLinkCookie: [] }],
+        headers: originHeadersSchema,
+        body: googleStartBodySchema,
+        response: {
+          200: authorizationUrlSchema,
+          400: errorSchema,
+          401: errorSchema,
+          403: errorSchema,
+          503: errorSchema,
+        },
+      },
+    },
+    async (request, reply) => {
+      if (!options.googleOidc) return googleUnavailable(reply);
+      const link = readCookie(request.headers.cookie, accountLinkCookieName);
+      if (!link.token || link.invalid) return accountLinkRequired(reply);
+      const flow = await createGoogleLinkFlow(
+        options.database,
+        link.token,
+        request.body.returnTo,
+      );
+      if (!flow) return accountLinkRequired(reply);
+      return reply
+        .header(
+          "set-cookie",
+          serializeGoogleOidcFlowCookie(flow.flowToken, flow.state),
+        )
+        .send({
+          authorizationUrl: buildGoogleAuthorizationUrl(options.googleOidc, {
+            codeChallenge: flow.codeChallenge,
+            nonce: flow.nonce,
+            state: flow.state,
+          }),
+        });
+    },
+  );
+
   server.get<{
     Querystring: { code?: string; error?: string; state?: string };
   }>(
@@ -983,6 +1120,21 @@ const googleUnavailable = (reply: FastifyReply) => {
   return reply.code(503).send({
     code: "provider_unavailable",
     message: "Google 로그인을 지금 사용할 수 없습니다.",
+  });
+};
+
+const accountLinkRequired = (reply: FastifyReply, clearCookie = true) => {
+  if (clearCookie) reply.header("set-cookie", clearAccountLinkCookie());
+  return reply.code(401).send({
+    code: "account_link_required",
+    message: "계정 연결 인증을 다시 진행해 주세요.",
+  });
+};
+
+const invalidCredentials = (reply: FastifyReply) => {
+  return reply.code(401).send({
+    code: "invalid_credentials",
+    message: "비밀번호를 확인해 주세요.",
   });
 };
 

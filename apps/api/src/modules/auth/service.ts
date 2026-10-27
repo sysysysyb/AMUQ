@@ -1,5 +1,7 @@
 import { createHash } from "node:crypto";
+
 import type { Pool, PoolClient } from "pg";
+
 import { inTransaction } from "#api/db/transaction";
 import { normalizeEmail } from "#api/modules/auth/email";
 import { type GoogleIdentity, safeReturnTo } from "#api/modules/auth/google";
@@ -31,6 +33,8 @@ import {
 type AuthDatabase = Pick<Pool, "query">;
 type AuthPool = Pick<Pool, "connect" | "query">;
 type AuthClock = Date | (() => Date);
+
+class ExpiredPasswordAccountLinkError extends Error {}
 
 export interface AuthenticatedUser {
   email: string;
@@ -255,12 +259,46 @@ const rotateSessionHash = async (
   return result.rows[0] ? replacement.rawToken : undefined;
 };
 
+export { normalizeEmail } from "#api/modules/auth/email";
+
 export const createGoogleLoginFlow = (
   database: AuthDatabase,
   returnTo: string | undefined,
   now = new Date(),
 ): Promise<GoogleOidcFlowStart> => {
   return insertGoogleOidcFlow(database, "login", null, null, returnTo, now);
+};
+
+export const createGoogleLinkFlow = async (
+  database: AuthPool,
+  rawLinkToken: string,
+  returnTo: string | undefined,
+  now = new Date(),
+): Promise<GoogleOidcFlowStart | undefined> => {
+  return inTransaction(database, async (client) => {
+    const linkTokenHash = hashOpaqueToken(rawLinkToken);
+    const link = await client.query<{ userId: string }>(
+      `SELECT link.user_id::text AS "userId"
+         FROM auth_link_sessions AS link
+         JOIN users ON users.id = link.user_id
+        WHERE link.token_hash = $1
+          AND link.primary_provider = 'password'
+          AND link.required_provider = 'google'
+          AND link.consumed_at IS NULL
+          AND link.expires_at > $2
+        FOR UPDATE OF users, link`,
+      [linkTokenHash, now],
+    );
+    if (!link.rows[0]) return undefined;
+    return insertGoogleOidcFlow(
+      client,
+      "link",
+      link.rows[0].userId,
+      linkTokenHash,
+      returnTo,
+      now,
+    );
+  });
 };
 
 export const consumeGoogleOidcFlow = async (
@@ -851,6 +889,153 @@ export const authenticatePassword = async (
   );
   if (attempt && login) attempt.completed = true;
   return login;
+};
+
+export const getAccountLinkStatus = async (
+  database: AuthDatabase,
+  rawLinkToken: string,
+  now = new Date(),
+): Promise<AccountLinkStatus | undefined> => {
+  const result = await database.query<AccountLinkStatus>(
+    `SELECT users.email,
+            link.required_provider AS "requiredProvider"
+       FROM auth_link_sessions AS link
+       JOIN users ON users.id = link.user_id
+      WHERE link.token_hash = $1
+        AND users.email_verified_at IS NOT NULL
+        AND link.consumed_at IS NULL
+        AND link.expires_at > $2`,
+    [hashOpaqueToken(rawLinkToken), now],
+  );
+  return result.rows[0];
+};
+
+export const completeAccountLinkWithPassword = async (
+  database: AuthPool,
+  rawLinkToken: string,
+  password: string,
+  consent: boolean,
+  clock: AuthClock = () => new Date(),
+  attempt?: PasswordLoginAttempt,
+): Promise<AuthenticationResult> => {
+  if (!consent) return { status: "invalid_session" };
+  const checkedAt = readAuthClock(clock);
+  const linkTokenHash = hashOpaqueToken(rawLinkToken);
+  const candidate = await database.query<{
+    passwordHash: string;
+    userId: string;
+  }>(
+    `SELECT link.user_id::text AS "userId",
+            identity.password_hash AS "passwordHash"
+       FROM auth_link_sessions AS link
+       JOIN users ON users.id = link.user_id AND users.email_verified_at IS NOT NULL
+       JOIN auth_identities AS identity
+         ON identity.user_id = link.user_id AND identity.provider = 'password'
+      WHERE link.token_hash = $1
+        AND link.primary_provider = 'google'
+        AND link.required_provider = 'password'
+        AND link.consumed_at IS NULL
+        AND link.expires_at > $2
+        AND identity.verified_at IS NOT NULL
+        AND identity.activated_at IS NOT NULL`,
+    [linkTokenHash, checkedAt],
+  );
+  const passwordValid = await verifyPassword(
+    candidate.rows[0]?.passwordHash ?? dummyPasswordHash,
+    password,
+  );
+  if (!candidate.rows[0] || !passwordValid) {
+    if (candidate.rows[0] && attempt)
+      await finishPasswordLoginAttempt(database, attempt, "failure");
+    return {
+      status: candidate.rows[0] ? "invalid_credentials" : "invalid_session",
+    };
+  }
+
+  try {
+    const result = await inTransaction(database, async (client) => {
+      const userId = candidate.rows[0]!.userId;
+      const user = await client.query<{
+        email: string;
+        emailVerified: boolean;
+        id: string;
+      }>(
+        `SELECT id::text, email,
+              email_verified_at IS NOT NULL AS "emailVerified"
+         FROM users
+        WHERE id = $1
+        FOR UPDATE`,
+        [userId],
+      );
+      if (!user.rows[0]?.emailVerified)
+        return { status: "invalid_session" } as const;
+      const completedAt = readAuthClock(clock);
+      const link = await client.query(
+        `SELECT 1
+         FROM auth_link_sessions AS link
+         JOIN auth_identities AS password
+           ON password.user_id = link.user_id AND password.provider = 'password'
+        WHERE link.token_hash = $1
+          AND link.user_id = $2
+          AND link.primary_provider = 'google'
+          AND link.required_provider = 'password'
+          AND link.consumed_at IS NULL
+          AND link.expires_at > $3
+          AND password.password_hash = $4
+          AND password.verified_at IS NOT NULL
+          AND password.activated_at IS NOT NULL
+        FOR UPDATE OF link, password`,
+        [linkTokenHash, userId, completedAt, candidate.rows[0]!.passwordHash],
+      );
+      if (!link.rows[0]) return { status: "invalid_session" } as const;
+      const activated = await client.query(
+        `UPDATE auth_identities
+          SET activated_at = $2, updated_at = $2
+        WHERE user_id = $1
+          AND provider = 'google'
+          AND verified_at IS NOT NULL
+          AND activated_at IS NULL
+      RETURNING id`,
+        [userId, completedAt],
+      );
+      if (!activated.rows[0]) return { status: "invalid_session" } as const;
+      if (
+        !(await consumeAccountLinkSessions(
+          client,
+          userId,
+          linkTokenHash,
+          completedAt,
+        ))
+      ) {
+        return { status: "invalid_session" } as const;
+      }
+      if (attempt) {
+        await finishPasswordLoginAttemptInTransaction(
+          client,
+          attempt,
+          "success",
+        );
+        const stillValid = await client.query(
+          `SELECT 1 FROM auth_link_sessions WHERE token_hash = $1 AND expires_at > clock_timestamp()`,
+          [linkTokenHash],
+        );
+        if (!stillValid.rows[0]) throw new ExpiredPasswordAccountLinkError();
+      }
+      const sessionToken = await issueSession(client, userId, completedAt);
+      if (!sessionToken) throw new Error("Cannot issue linked session");
+      return {
+        sessionToken,
+        status: "authenticated" as const,
+        user: user.rows[0],
+      };
+    });
+    if (attempt && result.status === "authenticated") attempt.completed = true;
+    return result;
+  } catch (error) {
+    if (error instanceof ExpiredPasswordAccountLinkError)
+      return { status: "invalid_session" } as const;
+    throw error;
+  }
 };
 
 export const getAuthenticatedUser = async (
