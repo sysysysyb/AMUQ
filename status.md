@@ -5,7 +5,7 @@
 ## Current state
 
 - Status: in progress
-- Stage: Stage 6 — Issue #8 / PR2 일괄 재구성 14/17 후보 검증 완료, 로컬 커밋 진행
+- Stage: Stage 6 — Issue #8 / PR2 일괄 재구성 15/17 후보 검증 완료, 로컬 커밋 진행
 
 ## Active work
 
@@ -17,8 +17,8 @@
 
 ## Current checkpoint
 
-- Last completed: Google 거부 6개 검사 중간 상태 검증. 직전 재구성 커밋 `638f970`
-- Latest verification: 타입, 단위 151개와 린트 — passed (이 묶음에서 DB 검사는 추가 실행하지 않음)
+- Last completed: 가입 완료 6개 검사 중간 상태 검증. 직전 재구성 커밋 `2ef4012`
+- Latest verification: 타입, 단위 151개, 해당 DB 통합 18개와 린트 — passed
 
 ## Review focus
 
