@@ -307,6 +307,15 @@ export const registerAuthRoutes: FastifyPluginAsync<AuthRoutesOptions> = async (
   server.addHook("onRequest", async (request, reply) => {
     reply.header("cache-control", "no-store");
     if (
+      request.method !== "GET" &&
+      !allowedOrigins.has(request.headers.origin ?? "")
+    ) {
+      return reply.code(403).send({
+        code: "origin_not_allowed",
+        message: "허용되지 않은 요청 출처입니다.",
+      });
+    }
+    if (
       request.method === "POST" &&
       ["/auth/login", "/auth/link/password"].includes(
         request.routeOptions.url ?? "",
@@ -317,15 +326,6 @@ export const registerAuthRoutes: FastifyPluginAsync<AuthRoutesOptions> = async (
         request.clientAddress,
         options.rateLimitSecret,
       );
-    }
-    if (
-      request.method !== "GET" &&
-      !allowedOrigins.has(request.headers.origin ?? "")
-    ) {
-      return reply.code(403).send({
-        code: "origin_not_allowed",
-        message: "허용되지 않은 요청 출처입니다.",
-      });
     }
   });
 

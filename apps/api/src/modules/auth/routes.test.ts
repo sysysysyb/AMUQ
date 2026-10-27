@@ -31,6 +31,32 @@ afterEach(async () => {
 });
 
 describe("authentication HTTP boundary", () => {
+  it.each(["/auth/login", "/auth/link/password"])(
+    "rejects untrusted Origins before touching login budgets on %s",
+    async (url) => {
+      const query = vi.fn();
+      const connect = vi.fn();
+      const server = await createServer({ query, connect } as unknown as Pool);
+      for (const origin of [
+        undefined,
+        "null",
+        "https://evil.example",
+        "https://web.example.evil.example",
+      ]) {
+        const response = await server.inject({
+          method: "POST",
+          url,
+          headers: origin === undefined ? {} : { origin },
+          payload: { email: "learner@example.com", password: "ValidPass1234" },
+        });
+        expect(response.statusCode).toBe(403);
+        expect(response.json().code).toBe("origin_not_allowed");
+      }
+      expect(query).not.toHaveBeenCalled();
+      expect(connect).not.toHaveBeenCalled();
+    },
+  );
+
   it("enforces the new password policy before signup or reset can touch the database", async () => {
     const query = vi.fn();
     const connect = vi.fn();
