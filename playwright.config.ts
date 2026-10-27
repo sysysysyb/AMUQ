@@ -2,14 +2,18 @@ import { defineConfig } from "@playwright/test";
 
 export default defineConfig({
   use: {
-    baseURL: "http://127.0.0.1:3000",
+    baseURL: "http://localhost:3000",
   },
   testDir: "./tests/e2e",
   webServer: [
     {
       command:
         "node --conditions=development --env-file-if-exists=.env --experimental-strip-types apps/api/src/http/index.ts",
-      env: { AMUQ_ENV: "test" },
+      env: {
+        AMUQ_ENV: "test",
+        API_ORIGIN: "",
+        WEB_ORIGIN: "http://localhost:3000",
+      },
       port: 3001,
       reuseExistingServer: false,
     },

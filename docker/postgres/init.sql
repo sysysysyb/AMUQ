@@ -1,0 +1,1 @@
+CREATE DATABASE amuq_test;

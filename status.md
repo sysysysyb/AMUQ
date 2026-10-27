@@ -5,7 +5,7 @@
 ## Current state
 
 - Status: in progress
-- Stage: Stage 6 — Issue #8 / PR2 일괄 재구성 11/17 후보 검증 완료, 로컬 커밋 진행
+- Stage: Stage 6 — Issue #8 / PR2 일괄 재구성 12/17 후보 검증 완료, 로컬 커밋 진행
 
 ## Active work
 
@@ -17,8 +17,8 @@
 
 ## Current checkpoint
 
-- Last completed: 서명 Webhook 중간 상태 검증. 직전 재구성 커밋 `2e284d8`
-- Latest verification: 타입, 단위 145개, 해당 DB 통합 11개와 린트 — passed
+- Last completed: 시작 연결과 CI 및 HTTP E2E 중간 상태 검증. 직전 재구성 커밋 `d1f2b74`
+- Latest verification: 타입, 단위 145개, 해당 DB 통합 141개와 린트 — passed
 
 ## Review focus
 

@@ -15,7 +15,29 @@ test("the web origin reaches API health with one request ID", async ({
 test("the production API entry does not expose Swagger UI by default", async ({
   request,
 }) => {
-  const response = await request.get("http://127.0.0.1:3001/documentation/");
+  const response = await request.get(
+    `${process.env.E2E_API_ORIGIN ?? "http://127.0.0.1:3001"}/documentation/`,
+  );
 
   expect(response.status()).toBe(404);
+});
+
+test("the browser origin can submit an authentication request through the web proxy", async ({
+  page,
+}) => {
+  await page.goto("/");
+
+  const response = await page.evaluate(async () => {
+    const result = await fetch("/api/auth/signup/complete", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({
+        signupProof: "invalid-proof".repeat(5),
+        password: "ValidPass1234",
+      }),
+    });
+    return { body: await result.json(), status: result.status };
+  });
+
+  expect(response).toEqual({ body: { status: "invalid_proof" }, status: 400 });
 });
