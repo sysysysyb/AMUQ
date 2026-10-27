@@ -5,7 +5,7 @@
 ## Current state
 
 - Status: in progress
-- Stage: Stage 6 — Issue #8 / PR2 일괄 재구성 16/17 후보 검증 완료, 로컬 커밋 진행
+- Stage: Stage 6 — Issue #8 / PR2 일괄 재구성 17/17 후보 검증 완료, 로컬 커밋 진행
 
 ## Active work
 
@@ -17,8 +17,8 @@
 
 ## Current checkpoint
 
-- Last completed: 공백 Google 이메일 수정과 3개 검사 중간 상태 검증. 직전 재구성 커밋 `57c5631`
-- Latest verification: 타입, 단위 154개와 린트 — passed (이 묶음에서 DB 검사는 추가 실행하지 않음)
+- Last completed: 한국어 본문과 PR 제목 규칙 중간 상태 검증. 직전 재구성 커밋 `902fc37`
+- Latest verification: 문서와 규칙 및 링크 확인 대상. 제품 코드가 바뀌지 않아 타입과 제품 검사는 이 묶음에서 다시 실행하지 않음
 
 ## Review focus
 
