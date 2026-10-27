@@ -3,7 +3,10 @@ packages:
   - packages/*
 
 allowBuilds:
+  argon2: true
   esbuild: true
 
 engineStrict: true
+minimumReleaseAgeExclude:
+  - svix@2.8.0
 saveExact: true
