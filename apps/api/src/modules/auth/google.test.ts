@@ -104,6 +104,7 @@ describe("Google OIDC", () => {
   describe("ID token verification", () => {
     let keySet: ReturnType<typeof createLocalJWKSet>;
     let privateKey: SigningKey;
+    const invalidIdentity = "Google ID token identity is invalid";
 
     beforeAll(async () => {
       const keys = await generateKeyPair("RS256", { extractable: true });
@@ -133,6 +134,37 @@ describe("Google OIDC", () => {
         subject: "google-123",
       });
     });
+
+    it.each([
+      ["unverified email", { email_verified: false }, invalidIdentity],
+      ["missing email", { email: undefined }, invalidIdentity],
+      ["empty email", { email: "" }, invalidIdentity],
+      ["missing subject", { sub: undefined }, invalidIdentity],
+      ["empty subject", { sub: "" }, invalidIdentity],
+      [
+        "untrusted issuer",
+        { iss: "https://issuer.example" },
+        'unexpected "iss" claim value',
+      ],
+    ] satisfies [string, Record<string, unknown>, string][])(
+      "rejects a correctly signed token with %s",
+      async (_condition, overrides, expectedMessage) => {
+        const token = await signedIdToken(
+          privateKey,
+          { aud: config.clientId, nonce: "nonce" },
+          overrides,
+        );
+
+        await expect(
+          verifyGoogleIdToken(
+            token,
+            config.clientId,
+            hashOpaqueToken("nonce"),
+            keySet,
+          ),
+        ).rejects.toThrow(expectedMessage);
+      },
+    );
 
     it("rejects a token with the wrong audience or nonce", async () => {
       const wrongAudience = await signedIdToken(privateKey, {
@@ -167,16 +199,18 @@ describe("Google OIDC", () => {
 const signedIdToken = async (
   privateKey: SigningKey,
   claims: { aud: string; nonce: string },
+  overrides: Record<string, unknown> = {},
 ) => {
   return new SignJWT({
     email: "person@example.com",
     email_verified: true,
+    iss: "https://accounts.google.com",
     nonce: claims.nonce,
+    sub: "google-123",
+    ...overrides,
   })
     .setProtectedHeader({ alg: "RS256", kid: "test" })
-    .setIssuer("https://accounts.google.com")
     .setAudience(claims.aud)
-    .setSubject("google-123")
     .setIssuedAt()
     .setExpirationTime("5m")
     .sign(privateKey);
