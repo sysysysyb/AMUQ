@@ -117,7 +117,7 @@ export const verifyGoogleIdToken = async (
     typeof payload.sub !== "string" ||
     !payload.sub ||
     typeof payload.email !== "string" ||
-    !payload.email ||
+    !payload.email.trim() ||
     payload.email_verified !== true
   ) {
     throw new Error("Google ID token identity is invalid");
