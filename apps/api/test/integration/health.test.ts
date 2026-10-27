@@ -1,4 +1,6 @@
+import { spawnSync } from "node:child_process";
 import { EventEmitter } from "node:events";
+import { fileURLToPath } from "node:url";
 
 import { afterEach, describe, expect, it, vi } from "vitest";
 
@@ -10,15 +12,210 @@ afterEach(async () => {
   await Promise.all(servers.splice(0).map((server) => server.close()));
 });
 
-async function createServer(
+const createServer = async (
   environment: "development" | "production" | "test",
-) {
+) => {
   const server = await buildServer({ environment });
   servers.push(server);
   return server;
-}
+};
 
 describe("HTTP foundation", () => {
+  it.each(["production", "development"])(
+    "keeps private input out of %s request logs while preserving error diagnostics",
+    (environment) => {
+      const result = spawnSync(
+        process.execPath,
+        [
+          "--conditions=development",
+          "--experimental-strip-types",
+          "--input-type=module",
+          "-e",
+          `import { PassThrough } from "node:stream";
+         import { buildServer } from "#api/http/server";
+         const server = await buildServer({ environment: "${environment}" });
+         server.get("/auth/google/callback", async () => ({ status: "ok" }));
+         server.get("/failure", async () => {
+           throw Object.assign(new Error("private-error-fixture"), {
+             code: "private-error-code-fixture",
+             detail: "private-error-detail-fixture",
+             cause: new Error("private-error-cause-fixture"),
+           });
+         });
+         server.get("/serializer-failure", {
+           schema: { response: { 500: {
+             type: "object", required: ["missing"], properties: { missing: { type: "string" } },
+           } } },
+         }, async () => { throw new Error("private-serializer-fixture"); });
+         server.get("/stream-failure", async (_request, reply) => {
+           const stream = new PassThrough();
+           reply.send(stream);
+           stream.write("started");
+           setImmediate(() => stream.destroy(new Error("private-stream-fixture")));
+           return reply;
+         });
+         server.post("/json", async () => ({ status: "ok" }));
+         server.get("/double-send", async (_request, reply) => {
+           reply.send({ status: "ok" });
+           reply.send({ status: "duplicate" });
+           return reply;
+         });
+         server.get("/bare-error", async (request) => {
+           request.log.error(new Error("private-bare-error-fixture"));
+           return { status: "ok" };
+         });
+         server.get("/client-failure", async () => {
+           throw Object.assign(new Error("private-client-error-fixture"), {
+             statusCode: 400, code: "private-client-code-fixture",
+           });
+         });
+         server.get("/header-failure", async (_request, reply) => {
+           const writeHead = reply.raw.writeHead.bind(reply.raw);
+           let attempts = 0;
+           reply.raw.writeHead = (...args) => {
+             if (++attempts <= 3) {
+               throw Object.assign(new Error("private-write-head-fixture"), {
+                 code: "ERR_HTTP_HEADERS_SENT",
+               });
+             }
+             return writeHead(...args);
+           };
+           return { status: "ok" };
+         });
+         try {
+           for (const path of ["/auth/google/callback", "/missing/private-path-fixture", "/failure", "/serializer-failure", "/documentation/", "/double-send", "/client-failure", "/header-failure", "/bare-error"]) {
+             await server.inject({
+               method: "GET",
+               url: path + "?code=private-code-fixture&state=private-state-fixture&email=private-email-fixture",
+               headers: {
+                 cookie: "__Host-session=private-cookie-fixture",
+                 authorization: "Bearer private-header-fixture",
+               },
+             });
+           }
+           await server.inject({
+             method: "POST", url: "/json",
+             headers: { "content-type": "application/json" },
+             payload: '{"email":"private-body-fixture",invalid}',
+           });
+           await server.inject({ url: "/stream-failure?token=private-stream-token-fixture" }).catch(() => undefined);
+         } finally {
+           await server.close();
+         }`,
+        ],
+        {
+          cwd: fileURLToPath(new URL("../../", import.meta.url)),
+          encoding: "utf8",
+          timeout: 10_000,
+        },
+      );
+
+      expect(result.error).toBeUndefined();
+      expect(result.status, result.stderr).toBe(0);
+      expect(result.stdout).not.toContain("private-");
+      const logs = result.stdout
+        .trim()
+        .split("\n")
+        .map((line) => JSON.parse(line));
+      const duplicateRequest = logs.find(
+        (log) => log.req?.route === "/double-send",
+      );
+      expect(duplicateRequest).toBeDefined();
+      expect(logs).toContainEqual(
+        expect.objectContaining({
+          reqId: duplicateRequest.reqId,
+          level: 40,
+          err: "[Redacted]",
+          msg: "FST_ERR_REP_ALREADY_SENT",
+        }),
+      );
+      const bareErrorRequest = logs.find(
+        (log) => log.req?.route === "/bare-error",
+      );
+      expect(bareErrorRequest).toBeDefined();
+      expect(logs).toContainEqual(
+        expect.objectContaining({
+          reqId: bareErrorRequest.reqId,
+          level: 50,
+          err: "[Redacted]",
+          msg: "server error",
+        }),
+      );
+      expect(logs).toContainEqual(
+        expect.objectContaining({
+          reqId: expect.any(String),
+          req: { method: "GET", route: "/auth/google/callback" },
+        }),
+      );
+      expect(logs).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            reqId: expect.any(String),
+            res: expect.objectContaining({ statusCode: 200 }),
+            responseTime: expect.any(Number),
+          }),
+          expect.objectContaining({
+            reqId: expect.any(String),
+            res: expect.objectContaining({ statusCode: 404 }),
+            responseTime: expect.any(Number),
+          }),
+          expect.objectContaining({
+            level: 50,
+            reqId: expect.any(String),
+            req: { method: "GET", route: "/failure" },
+            res: expect.objectContaining({ statusCode: 500 }),
+            errorCode: "INTERNAL_ERROR",
+            msg: "request failed",
+          }),
+          expect.objectContaining({
+            reqId: expect.any(String),
+            errorCode: "FST_ERR_CTP_INVALID_JSON_BODY",
+            res: expect.objectContaining({ statusCode: 400 }),
+          }),
+          expect.objectContaining({
+            level: 50,
+            reqId: expect.any(String),
+            statusCode: 500,
+            err: "[Redacted]",
+            msg: "The serializer for the given status code failed",
+          }),
+          expect.objectContaining({
+            level: 40,
+            reqId: expect.any(String),
+            err: "[Redacted]",
+            msg: "response terminated with an error with headers already sent",
+          }),
+          expect.objectContaining({
+            reqId: expect.any(String),
+            errorCode: "REQUEST_ERROR",
+            req: { method: "GET", route: "/client-failure" },
+            res: expect.objectContaining({ statusCode: 400 }),
+          }),
+          expect.objectContaining({
+            level: 40,
+            reqId: expect.any(String),
+            req: { method: "GET", route: "/header-failure" },
+            msg: "response headers failed",
+          }),
+        ]),
+      );
+      if (environment === "development") {
+        const documentationRequest = logs.find(
+          (log) => log.req?.route === "/documentation",
+        );
+        expect(documentationRequest).toBeDefined();
+        expect(logs).toContainEqual(
+          expect.objectContaining({
+            res: expect.objectContaining({ statusCode: 200 }),
+            responseTime: expect.any(Number),
+            reqId: documentationRequest.reqId,
+            msg: "request completed",
+          }),
+        );
+      }
+    },
+  );
+
   it("uses only the authenticated proxy client address", async () => {
     const server = await buildServer({
       environment: "test",
@@ -151,7 +348,12 @@ describe("HTTP foundation", () => {
       runtime,
     );
     runtime.emit("SIGTERM");
-    await vi.waitFor(() => expect(error).toHaveBeenCalledWith(shutdownError));
+    await vi.waitFor(() =>
+      expect(error).toHaveBeenCalledWith(
+        { shutdownFailure: "unexpected" },
+        "Server shutdown failed",
+      ),
+    );
 
     expect(runtime.exitCode).toBe(1);
   });
