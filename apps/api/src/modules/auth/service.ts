@@ -1,6 +1,8 @@
+import { createHash } from "node:crypto";
 import type { Pool, PoolClient } from "pg";
 import { inTransaction } from "#api/db/transaction";
 import { normalizeEmail } from "#api/modules/auth/email";
+import { type GoogleIdentity, safeReturnTo } from "#api/modules/auth/google";
 import {
   finishPasswordLoginAttempt,
   finishPasswordLoginAttemptInTransaction,
@@ -15,6 +17,7 @@ import {
   accountLinkSessionLifetimeMs,
   createPasswordResetSession,
   createSession,
+  googleOidcFlowLifetimeMs,
 } from "#api/modules/auth/session";
 import { lockSignupEmail } from "#api/modules/auth/signup-challenge";
 import {
@@ -250,6 +253,297 @@ const rotateSessionHash = async (
     [tokenHash, now, replacement.tokenHash],
   );
   return result.rows[0] ? replacement.rawToken : undefined;
+};
+
+export const createGoogleLoginFlow = (
+  database: AuthDatabase,
+  returnTo: string | undefined,
+  now = new Date(),
+): Promise<GoogleOidcFlowStart> => {
+  return insertGoogleOidcFlow(database, "login", null, null, returnTo, now);
+};
+
+export const consumeGoogleOidcFlow = async (
+  database: AuthDatabase,
+  rawFlowToken: string,
+  rawState: string,
+  rawLinkToken?: string,
+  now = new Date(),
+): Promise<ConsumedGoogleOidcFlow | undefined> => {
+  const result = await database.query<
+    Omit<ConsumedGoogleOidcFlow, "codeVerifier">
+  >(
+    `UPDATE auth_oidc_flows
+        SET consumed_at = $3
+      WHERE flow_hash = $1
+        AND state_hash = $2
+        AND (mode = 'login' OR session_token_hash = $4)
+        AND consumed_at IS NULL
+        AND expires_at > $3
+    RETURNING mode,
+              nonce_hash AS "nonceHash",
+              return_to AS "returnTo",
+              session_token_hash AS "linkTokenHash",
+              user_id::text AS "userId"`,
+    [
+      hashOpaqueToken(rawFlowToken),
+      hashOpaqueToken(rawState),
+      now,
+      rawLinkToken ? hashOpaqueToken(rawLinkToken) : null,
+    ],
+  );
+  return result.rows[0]
+    ? {
+        ...result.rows[0],
+        codeVerifier: rawFlowToken,
+      }
+    : undefined;
+};
+
+export const completeGoogleLogin = async (
+  database: AuthPool,
+  identity: GoogleIdentity,
+  clock: AuthClock = () => new Date(),
+): Promise<AuthenticationResult> => {
+  const email = normalizeEmail(identity.email);
+  return inTransaction(database, async (client) => {
+    await lockGoogleIdentityChanges(client);
+    await lockSignupEmail(client, email);
+    const now = readAuthClock(clock);
+    const existing = await client.query<{
+      activatedAt: Date | null;
+      email: string;
+      emailVerified: boolean;
+      id: string;
+    }>(
+      `SELECT users.id::text,
+              users.email,
+              users.email_verified_at IS NOT NULL AS "emailVerified",
+              identity.activated_at AS "activatedAt"
+         FROM auth_identities AS identity
+         JOIN users ON users.id = identity.user_id
+        WHERE identity.provider = 'google'
+          AND identity.provider_subject = $1
+        FOR UPDATE OF users, identity`,
+      [identity.subject],
+    );
+    if (existing.rows[0]) {
+      if (!existing.rows[0].activatedAt) {
+        const required = await client.query(
+          `SELECT 1
+             FROM auth_identities
+            WHERE user_id = $1
+              AND provider = 'password'
+              AND verified_at IS NOT NULL
+              AND activated_at IS NOT NULL`,
+          [existing.rows[0].id],
+        );
+        if (!required.rows[0]) return { status: "identity_conflict" };
+        return {
+          linkSessionToken: await issueAccountLinkSession(
+            client,
+            existing.rows[0].id,
+            "google",
+            "password",
+            now,
+          ),
+          requiredProvider: "password",
+          status: "account_link_required",
+        };
+      }
+      const sessionToken = await issueSession(client, existing.rows[0].id, now);
+      if (!sessionToken) return { status: "invalid_session" };
+      return {
+        sessionToken,
+        status: "authenticated",
+        user: {
+          email: existing.rows[0].email,
+          emailVerified: existing.rows[0].emailVerified,
+          id: existing.rows[0].id,
+        },
+      };
+    }
+
+    const sameEmail = await client.query<{
+      id: string;
+      verifiedAt: Date | null;
+    }>(
+      'SELECT id::text, email_verified_at AS "verifiedAt" FROM users WHERE email = $1 FOR UPDATE',
+      [email],
+    );
+    if (sameEmail.rows[0]) {
+      const identities = await client.query<{
+        activatedAt: Date | null;
+        provider: "google" | "password";
+        verifiedAt: Date | null;
+      }>(
+        `SELECT provider,
+                verified_at AS "verifiedAt",
+                activated_at AS "activatedAt"
+           FROM auth_identities
+          WHERE user_id = $1
+          FOR UPDATE`,
+        [sameEmail.rows[0].id],
+      );
+      if (
+        isRecoverableLegacyPasswordAccount(
+          sameEmail.rows[0].verifiedAt,
+          identities.rows,
+        )
+      ) {
+        const userId = sameEmail.rows[0].id;
+        await retireLegacySignupCredentials(client, userId, now);
+        await client.query(
+          "DELETE FROM auth_identities WHERE user_id = $1 AND provider = 'password'",
+          [userId],
+        );
+        await client.query(
+          "UPDATE users SET email_verified_at = $2, updated_at = $2 WHERE id = $1",
+          [userId, now],
+        );
+        await client.query(
+          `INSERT INTO auth_identities (user_id, provider, provider_subject, verified_at, activated_at, created_at, updated_at)
+           VALUES ($1, 'google', $2, $3, $3, $3, $3)`,
+          [userId, identity.subject, now],
+        );
+        const sessionToken = await issueSession(client, userId, now);
+        if (!sessionToken)
+          throw new Error("Cannot issue recovered Google session");
+        return {
+          status: "authenticated",
+          sessionToken,
+          user: { id: userId, email, emailVerified: true },
+        };
+      }
+      if (
+        identities.rows.some(({ provider }) => provider === "google") ||
+        !identities.rows.some(
+          ({ activatedAt, provider, verifiedAt }) =>
+            provider === "password" && activatedAt && verifiedAt,
+        )
+      ) {
+        return { status: "identity_conflict" };
+      }
+      await client.query(
+        `INSERT INTO auth_identities
+           (user_id, provider, provider_subject, verified_at, created_at, updated_at)
+         VALUES ($1, 'google', $2, $3, $3, $3)`,
+        [sameEmail.rows[0].id, identity.subject, now],
+      );
+      return {
+        linkSessionToken: await issueAccountLinkSession(
+          client,
+          sameEmail.rows[0].id,
+          "google",
+          "password",
+          now,
+        ),
+        requiredProvider: "password",
+        status: "account_link_required",
+      };
+    }
+
+    const created = await client.query<{ email: string; id: string }>(
+      `INSERT INTO users
+         (email, email_verified_at, created_at, updated_at)
+       VALUES ($1, $2, $2, $2)
+       RETURNING id::text, email`,
+      [email, now],
+    );
+    const user = created.rows[0]!;
+    await client.query(
+      `INSERT INTO auth_identities
+         (user_id, provider, provider_subject, verified_at, activated_at, created_at, updated_at)
+       VALUES ($1, 'google', $2, $3, $3, $3, $3)`,
+      [user.id, identity.subject, now],
+    );
+    const sessionToken = await issueSession(client, user.id, now);
+    if (!sessionToken) throw new Error("Cannot issue Google session");
+    return {
+      sessionToken,
+      status: "authenticated",
+      user: { ...user, emailVerified: true },
+    };
+  });
+};
+
+export const completeGoogleLink = async (
+  database: AuthPool,
+  flow: ConsumedGoogleOidcFlow,
+  identity: GoogleIdentity,
+  clock: AuthClock = () => new Date(),
+): Promise<AuthenticationResult> => {
+  if (flow.mode !== "link" || !flow.userId || !flow.linkTokenHash) {
+    return { status: "invalid_session" };
+  }
+  const userId = flow.userId;
+  const linkTokenHash = flow.linkTokenHash;
+  return inTransaction(database, async (client) => {
+    await lockGoogleIdentityChanges(client);
+    const user = await client.query<{ email: string; id: string }>(
+      "SELECT id::text, email FROM users WHERE id = $1 FOR UPDATE",
+      [userId],
+    );
+    if (!user.rows[0]) return { status: "invalid_session" };
+    const lockedAt = readAuthClock(clock);
+    const link = await client.query<{ valid: boolean }>(
+      `SELECT true AS valid
+         FROM auth_link_sessions
+        WHERE token_hash = $1
+          AND user_id = $2
+          AND primary_provider = 'password'
+          AND required_provider = 'google'
+          AND consumed_at IS NULL
+          AND expires_at > $3
+        FOR UPDATE`,
+      [linkTokenHash, userId, lockedAt],
+    );
+    if (!link.rows[0]) return { status: "invalid_session" };
+
+    const google = await client.query<{
+      providerSubject: string;
+    }>(
+      `SELECT provider_subject AS "providerSubject"
+         FROM auth_identities
+        WHERE provider = 'google'
+          AND user_id = $1
+          AND verified_at IS NOT NULL
+          AND activated_at IS NOT NULL
+        FOR UPDATE`,
+      [userId],
+    );
+    if (google.rows[0]?.providerSubject !== identity.subject) {
+      return { status: "identity_conflict" };
+    }
+    const activated = await client.query(
+      `UPDATE auth_identities
+          SET activated_at = $2, updated_at = $2
+        WHERE user_id = $1
+          AND provider = 'password'
+          AND verified_at IS NOT NULL
+          AND activated_at IS NULL
+      RETURNING id`,
+      [userId, lockedAt],
+    );
+    if (!activated.rows[0]) return { status: "invalid_session" };
+    if (
+      !(await consumeAccountLinkSessions(
+        client,
+        userId,
+        linkTokenHash,
+        lockedAt,
+      ))
+    ) {
+      return { status: "invalid_session" };
+    }
+    const sessionToken = await issueSession(client, userId, lockedAt);
+    if (!sessionToken) throw new Error("Cannot issue linked session");
+    return {
+      sessionToken,
+      status: "authenticated",
+      user: { ...user.rows[0], emailVerified: true },
+    };
+  });
 };
 
 export type SignupCompletion =
@@ -761,6 +1055,47 @@ export const resetPassword = async (
   });
 };
 
+const insertGoogleOidcFlow = async (
+  database: AuthDatabase,
+  mode: "link" | "login",
+  userId: string | null,
+  sessionTokenHash: string | null,
+  returnTo: string | undefined,
+  now: Date,
+): Promise<GoogleOidcFlowStart> => {
+  const flowToken = createOpaqueToken();
+  const state = createOpaqueToken();
+  const nonce = createOpaqueToken();
+  await database.query(
+    `WITH expired AS (
+       DELETE FROM auth_oidc_flows WHERE expires_at <= $8
+     )
+     INSERT INTO auth_oidc_flows
+       (flow_hash, state_hash, nonce_hash, mode, user_id,
+        session_token_hash, return_to, created_at, expires_at)
+     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)`,
+    [
+      hashOpaqueToken(flowToken),
+      hashOpaqueToken(state),
+      hashOpaqueToken(nonce),
+      mode,
+      userId,
+      sessionTokenHash,
+      safeReturnTo(returnTo),
+      now,
+      new Date(now.getTime() + googleOidcFlowLifetimeMs),
+    ],
+  );
+  return {
+    codeChallenge: createHash("sha256")
+      .update(flowToken, "utf8")
+      .digest("base64url"),
+    flowToken,
+    nonce,
+    state,
+  };
+};
+
 const issueAccountLinkSession = async (
   database: AuthDatabase,
   userId: string,
@@ -786,6 +1121,31 @@ const issueAccountLinkSession = async (
     ],
   );
   return rawToken;
+};
+
+const consumeAccountLinkSessions = async (
+  database: AuthDatabase,
+  userId: string,
+  linkTokenHash: string,
+  now: Date,
+): Promise<boolean> => {
+  const result = await database.query(
+    `UPDATE auth_link_sessions
+        SET consumed_at = $3
+      WHERE user_id = $1
+        AND consumed_at IS NULL
+        AND EXISTS (
+          SELECT 1
+            FROM auth_link_sessions AS current
+           WHERE current.user_id = $1
+             AND current.token_hash = $2
+             AND current.consumed_at IS NULL
+             AND current.expires_at > $3
+        )
+    RETURNING id`,
+    [userId, linkTokenHash, now],
+  );
+  return Boolean(result.rows[0]);
 };
 
 const readAuthClock = (clock: AuthClock): Date => {

@@ -5,7 +5,7 @@
 ## Current state
 
 - Status: in progress
-- Stage: Stage 6 — Issue #8 / PR2 일괄 재구성 8/17 후보 검증 완료, 로컬 커밋 진행
+- Stage: Stage 6 — Issue #8 / PR2 일괄 재구성 9/17 후보 검증 완료, 로컬 커밋 진행
 
 ## Active work
 
@@ -17,8 +17,8 @@
 
 ## Current checkpoint
 
-- Last completed: 비밀번호 재설정 중간 상태 검증. 직전 재구성 커밋 `90ab65a`
-- Latest verification: 타입, 단위 113개, 해당 DB 통합 14개와 린트 — passed
+- Last completed: Google OIDC 신원과 로그인 중간 상태 검증. 직전 재구성 커밋 `a17eaec`
+- Latest verification: 타입, 단위 123개, 해당 DB 통합 21개 (추가 확인 포함)와 린트 — passed
 
 ## Review focus
 

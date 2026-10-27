@@ -1,8 +1,11 @@
 import { randomUUID } from "node:crypto";
+
 import { expect, it, vi } from "vitest";
+
 import { migrateDatabase } from "#api/db/migrations";
 import { buildServer } from "#api/http/server";
 import * as passwords from "#api/modules/auth/password";
+import { completeGoogleLogin } from "#api/modules/auth/service";
 import { deriveSignupCode } from "#api/modules/auth/signup-token";
 import { hashOpaqueToken } from "#api/modules/auth/token";
 import {
@@ -29,6 +32,62 @@ const createServer = (
   });
 
 databaseTest("signup HTTP transition", () => {
+  it("keeps anonymous challenge responses and unverified login failures indistinguishable", async () => {
+    await migrateDatabase(connectionString!);
+    await completeGoogleLogin(admin!, {
+      email: "existing@example.com",
+      subject: "existing-google",
+    });
+    const legacy = await admin!.query<{ id: string }>(
+      "INSERT INTO users(email) VALUES('unverified@example.com') RETURNING id",
+    );
+    await admin!.query(
+      "INSERT INTO auth_identities(user_id,provider,password_hash,activated_at) VALUES($1,'password',$2,now())",
+      [legacy.rows[0]!.id, await passwords.hashPassword("OwnerPass1234")],
+    );
+    const server = await createServer();
+    try {
+      const bodies: Record<string, unknown>[] = [];
+      for (const email of ["new@example.com", "existing@example.com"]) {
+        const started = performance.now();
+        const response = await server.inject({
+          method: "POST",
+          url: "/auth/signup/challenges",
+          payload: { email, operationKey: randomUUID() },
+          headers: { origin },
+        });
+        expect(response.statusCode).toBe(202);
+        expect(performance.now() - started).toBeGreaterThanOrEqual(200);
+        const {
+          attemptToken,
+          codeExpiresAt,
+          resendAvailableAt,
+          ...publicBody
+        } = response.json();
+        expect(attemptToken).toEqual(expect.any(String));
+        expect(Date.parse(codeExpiresAt)).toBeGreaterThan(Date.now());
+        expect(Date.parse(resendAvailableAt)).toBeGreaterThan(Date.now());
+        bodies.push(publicBody);
+      }
+      expect(bodies[0]).toEqual(bodies[1]);
+      const failures = [];
+      for (const email of ["unverified@example.com", "missing@example.com"]) {
+        const response = await server.inject({
+          method: "POST",
+          url: "/auth/login",
+          payload: { email, password: "OwnerPass1234" },
+          headers: { origin },
+        });
+        expect(response.statusCode).toBe(401);
+        expect(response.headers["set-cookie"]).toBeUndefined();
+        failures.push(response.json());
+      }
+      expect(failures[0]).toEqual(failures[1]);
+    } finally {
+      await server.close();
+    }
+  });
+
   it("limits concurrent completion hashing before the expensive password work", async () => {
     await migrateDatabase(connectionString!);
     const server = await createServer();

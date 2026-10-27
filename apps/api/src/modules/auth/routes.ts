@@ -3,7 +3,12 @@ import { setTimeout as delay } from "node:timers/promises";
 import type { FastifyPluginAsync, FastifyReply } from "fastify";
 import type { Pool } from "pg";
 import type { GoogleOidcConfig } from "#api/config/environment";
-import { type GoogleIdentity } from "#api/modules/auth/google";
+import {
+  buildGoogleAuthorizationUrl,
+  exchangeGoogleAuthorizationCode,
+  type GoogleIdentity,
+  safeReturnTo,
+} from "#api/modules/auth/google";
 import {
   consumePasswordLoginIp,
   withPasswordLoginAttempt,
@@ -11,7 +16,11 @@ import {
 import { AuthRateLimitExceededError } from "#api/modules/auth/rate-limit";
 import {
   authenticatePassword,
+  completeGoogleLink,
+  completeGoogleLogin,
   completeSignup,
+  consumeGoogleOidcFlow,
+  createGoogleLoginFlow,
   exchangePasswordResetToken,
   getAuthenticatedUser,
   requestPasswordReset,
@@ -19,10 +28,15 @@ import {
   revokeSession,
 } from "#api/modules/auth/service";
 import {
+  accountLinkCookieName,
+  clearAccountLinkCookie,
+  clearGoogleOidcFlowCookie,
   clearPasswordResetCookie,
   clearSessionCookie,
+  googleOidcFlowCookieName,
   passwordResetCookieName,
   serializeAccountLinkCookie,
+  serializeGoogleOidcFlowCookie,
   serializePasswordResetCookie,
   serializeSessionCookie,
   sessionCookieName,
@@ -204,6 +218,42 @@ const resetSessionSchema = {
     },
   },
 } as const;
+const authorizationUrlSchema = {
+  type: "object",
+  additionalProperties: false,
+  required: ["authorizationUrl"],
+  properties: { authorizationUrl: { type: "string", format: "uri" } },
+  headers: {
+    "Set-Cookie": {
+      description: "Secure __Host-google-oauth flow cookie",
+      type: "string",
+    },
+  },
+} as const;
+const returnToProperty = { type: "string", maxLength: 2_048 } as const;
+const googleStartBodySchema = {
+  type: "object",
+  additionalProperties: false,
+  properties: { returnTo: returnToProperty },
+} as const;
+const googleCallbackQuerySchema = {
+  type: "object",
+  properties: {
+    code: { type: "string", maxLength: 4_096 },
+    error: { type: "string", maxLength: 128 },
+    state: { type: "string", maxLength: 256 },
+  },
+} as const;
+const redirectSchema = {
+  description: "Browser redirect with an empty body",
+  type: "null",
+  headers: {
+    Location: { type: "string", format: "uri" },
+    "Set-Cookie": {
+      oneOf: [{ type: "string" }, { type: "array", items: { type: "string" } }],
+    },
+  },
+} as const;
 const noContentWithClearedCookiesSchema = {
   type: "null",
   headers: {
@@ -228,6 +278,8 @@ export const registerAuthRoutes: FastifyPluginAsync<AuthRoutesOptions> = async (
       : {}),
     rateLimitSecret: options.rateLimitSecret,
   };
+  const googleCodeExchange =
+    options.googleCodeExchange ?? exchangeGoogleAuthorizationCode;
 
   server.addHook("onRequest", async (request, reply) => {
     reply.header("cache-control", "no-store");
@@ -558,6 +610,184 @@ export const registerAuthRoutes: FastifyPluginAsync<AuthRoutesOptions> = async (
     },
   );
 
+  server.post<{ Body: { returnTo?: string } }>(
+    "/auth/google/start",
+    {
+      schema: {
+        operationId: "startGoogleLogin",
+        headers: originHeadersSchema,
+        body: googleStartBodySchema,
+        response: {
+          200: authorizationUrlSchema,
+          400: errorSchema,
+          403: errorSchema,
+          503: errorSchema,
+        },
+      },
+    },
+    async (request, reply) => {
+      if (!options.googleOidc) return googleUnavailable(reply);
+      const flow = await createGoogleLoginFlow(
+        options.database,
+        request.body.returnTo,
+      );
+      return reply
+        .header(
+          "set-cookie",
+          serializeGoogleOidcFlowCookie(flow.flowToken, flow.state),
+        )
+        .send({
+          authorizationUrl: buildGoogleAuthorizationUrl(options.googleOidc, {
+            codeChallenge: flow.codeChallenge,
+            nonce: flow.nonce,
+            state: flow.state,
+          }),
+        });
+    },
+  );
+
+  server.get<{
+    Querystring: { code?: string; error?: string; state?: string };
+  }>(
+    "/auth/google/callback",
+    {
+      // OAuth callbacks contain one-time codes in the query string.
+      logLevel: "silent",
+      schema: {
+        operationId: "completeGoogleAuthorization",
+        querystring: googleCallbackQuerySchema,
+        response: { 302: redirectSchema, 400: errorSchema },
+      },
+    },
+    async (request, reply) => {
+      const state = request.query.state;
+      const flowCookie = state
+        ? readCookie(request.headers.cookie, googleOidcFlowCookieName(state))
+        : { invalid: true as const };
+      if (
+        !options.googleOidc ||
+        !flowCookie.token ||
+        flowCookie.invalid ||
+        !state
+      ) {
+        return redirectGoogleError(
+          reply,
+          options.webOrigin,
+          "/login",
+          "invalid_request",
+          state,
+        );
+      }
+      const accountLink = readCookie(
+        request.headers.cookie,
+        accountLinkCookieName,
+      );
+      const flow = await consumeGoogleOidcFlow(
+        options.database,
+        flowCookie.token,
+        state,
+        accountLink.token && !accountLink.invalid
+          ? accountLink.token
+          : undefined,
+      );
+      if (!flow) {
+        return redirectGoogleError(
+          reply,
+          options.webOrigin,
+          "/login",
+          "invalid_request",
+          state,
+        );
+      }
+      const errorReturnTo = flow.mode === "link" ? "/login/link" : "/login";
+      if (request.query.error || !request.query.code) {
+        return redirectGoogleError(
+          reply,
+          options.webOrigin,
+          errorReturnTo,
+          request.query.error === "access_denied"
+            ? "provider_cancelled"
+            : "provider_error",
+          state,
+        );
+      }
+
+      let identity: GoogleIdentity;
+      try {
+        identity = await googleCodeExchange(
+          options.googleOidc,
+          request.query.code,
+          flow.codeVerifier,
+          flow.nonceHash,
+        );
+      } catch (error) {
+        server.log.warn(
+          {
+            authFailure: "google_provider",
+            errorName: error instanceof Error ? error.name : "UnknownError",
+            requestId: request.id,
+          },
+          "Google authorization failed",
+        );
+        return redirectGoogleError(
+          reply,
+          options.webOrigin,
+          errorReturnTo,
+          "provider_error",
+          state,
+        );
+      }
+
+      let result;
+      try {
+        result =
+          flow.mode === "login"
+            ? await completeGoogleLogin(options.database, identity)
+            : await completeGoogleLink(options.database, flow, identity);
+      } catch (error) {
+        server.log.warn(
+          {
+            authFailure: "google_completion",
+            errorName: error instanceof Error ? error.name : "UnknownError",
+            requestId: request.id,
+          },
+          "Google authentication completion failed",
+        );
+        return redirectGoogleError(
+          reply,
+          options.webOrigin,
+          errorReturnTo,
+          "service_error",
+          state,
+        );
+      }
+      if (result.status === "account_link_required") {
+        return reply
+          .header("set-cookie", [
+            serializeAccountLinkCookie(result.linkSessionToken),
+            clearGoogleOidcFlowCookie(state),
+          ])
+          .redirect(new URL("/login/link", options.webOrigin).href);
+      }
+      if (result.status !== "authenticated") {
+        return redirectGoogleError(
+          reply,
+          options.webOrigin,
+          errorReturnTo,
+          result.status,
+          state,
+        );
+      }
+      return reply
+        .header("set-cookie", [
+          serializeSessionCookie(result.sessionToken),
+          clearAccountLinkCookie(),
+          clearGoogleOidcFlowCookie(state),
+        ])
+        .redirect(new URL(safeReturnTo(flow.returnTo), options.webOrigin).href);
+    },
+  );
+
   server.post(
     "/auth/logout",
     {
@@ -747,6 +977,26 @@ const invalidResetSession = (reply: FastifyReply) => {
     code: "invalid_or_expired_reset_session",
     message: "재설정 시간이 만료되었습니다. 새 링크를 요청해 주세요.",
   });
+};
+
+const googleUnavailable = (reply: FastifyReply) => {
+  return reply.code(503).send({
+    code: "provider_unavailable",
+    message: "Google 로그인을 지금 사용할 수 없습니다.",
+  });
+};
+
+const redirectGoogleError = (
+  reply: FastifyReply,
+  webOrigin: string,
+  returnTo: string,
+  code: string,
+  state?: string,
+) => {
+  const destination = new URL(safeReturnTo(returnTo), webOrigin);
+  destination.searchParams.set("authError", code);
+  if (state) reply.header("set-cookie", clearGoogleOidcFlowCookie(state));
+  return reply.redirect(destination.href);
 };
 
 const waitForAnonymousResponseFloor = async (startedAt: number) => {
