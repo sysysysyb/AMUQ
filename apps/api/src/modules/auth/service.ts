@@ -1,6 +1,12 @@
 import type { Pool, PoolClient } from "pg";
 import { inTransaction } from "#api/db/transaction";
-import { hashPassword } from "#api/modules/auth/password";
+import { normalizeEmail } from "#api/modules/auth/email";
+import {
+  finishPasswordLoginAttempt,
+  finishPasswordLoginAttemptInTransaction,
+  type PasswordLoginAttempt,
+} from "#api/modules/auth/login-rate-limit";
+import { hashPassword, verifyPassword } from "#api/modules/auth/password";
 import { consumeAuthRateLimit } from "#api/modules/auth/rate-limit";
 import {
   accountLinkSessionLifetimeMs,
@@ -46,6 +52,9 @@ export interface AuthMutationOptions {
   authTokenSecret: string;
   rateLimitSecret: string;
 }
+
+const dummyPasswordHash =
+  "$argon2id$v=19$m=65536,p=4,t=3$/XC+PQlPIdJDJWiXfvfvxw$+WzZ5j/X4/oxmsETwRwLGN+rxo1XEqjSG2fvDKrVBYA";
 
 export interface IssuedAuthToken {
   id: string;
@@ -421,6 +430,151 @@ const retireLegacySignupCredentials = async (
     "UPDATE auth_oidc_flows SET consumed_at = $2 WHERE user_id = $1 AND consumed_at IS NULL",
     [userId, now],
   );
+};
+
+export const authenticatePassword = async (
+  database: AuthPool,
+  email: string,
+  password: string,
+  now = new Date(),
+  attempt?: PasswordLoginAttempt,
+): Promise<PasswordAuthenticationResult | undefined> => {
+  const result = await database.query<{
+    email: string;
+    id: string;
+    passwordHash: string;
+    activatedAt: Date | null;
+    verifiedAt: Date | null;
+    hasActiveGoogle: boolean;
+    emailVerified: boolean;
+  }>(
+    `SELECT users.id::text,
+            users.email, users.email_verified_at IS NOT NULL AS "emailVerified",
+            identity.password_hash AS "passwordHash"
+            , identity.activated_at AS "activatedAt"
+            , identity.verified_at AS "verifiedAt"
+            , EXISTS (
+                SELECT 1 FROM auth_identities AS google
+                 WHERE google.user_id = users.id AND google.provider = 'google'
+                   AND google.verified_at IS NOT NULL AND google.activated_at IS NOT NULL
+              ) AS "hasActiveGoogle"
+       FROM users
+       JOIN auth_identities AS identity
+         ON identity.user_id = users.id AND identity.provider = 'password'
+      WHERE users.email = $1`,
+    [normalizeEmail(email)],
+  );
+  const user = result.rows[0];
+  const passwordValid = await verifyPassword(
+    user?.passwordHash ?? dummyPasswordHash,
+    password,
+  );
+  if (
+    !user ||
+    !user.emailVerified ||
+    !user.verifiedAt ||
+    !passwordValid ||
+    (!user.activatedAt && !user.hasActiveGoogle)
+  ) {
+    if (attempt) await finishPasswordLoginAttempt(database, attempt, "failure");
+    return undefined;
+  }
+
+  const login = await inTransaction<PasswordAuthenticationResult | undefined>(
+    database,
+    async (client) => {
+      const locked = await client.query<{
+        activatedAt: Date | null;
+        email: string;
+        id: string;
+      }>(
+        `SELECT users.id::text, users.email,
+              identity.activated_at AS "activatedAt"
+         FROM users
+         JOIN auth_identities AS identity
+           ON identity.user_id = users.id AND identity.provider = 'password'
+        WHERE users.id = $1
+          AND users.email_verified_at IS NOT NULL
+          AND identity.verified_at IS NOT NULL
+          AND identity.password_hash = $2
+        FOR UPDATE OF users, identity`,
+        [user.id, user.passwordHash],
+      );
+      if (!locked.rows[0]) return undefined;
+
+      if (!locked.rows[0].activatedAt) {
+        const required = await client.query(
+          `SELECT 1
+           FROM auth_identities
+          WHERE user_id = $1
+            AND provider = 'google'
+            AND verified_at IS NOT NULL
+            AND activated_at IS NOT NULL`,
+          [locked.rows[0].id],
+        );
+        if (!required.rows[0]) return undefined;
+        if (attempt)
+          await finishPasswordLoginAttemptInTransaction(
+            client,
+            attempt,
+            "success",
+          );
+        return {
+          linkSessionToken: await issueAccountLinkSession(
+            client,
+            locked.rows[0].id,
+            "password",
+            "google",
+            now,
+          ),
+          requiredProvider: "google",
+          status: "account_link_required",
+        };
+      }
+
+      if (attempt)
+        await finishPasswordLoginAttemptInTransaction(
+          client,
+          attempt,
+          "success",
+        );
+      const sessionToken = await issueSession(client, locked.rows[0].id, now);
+      if (!sessionToken) throw new Error("Cannot issue password session");
+      return {
+        sessionToken,
+        status: "authenticated" as const,
+        user: {
+          email: locked.rows[0].email,
+          emailVerified: true,
+          id: locked.rows[0].id,
+        },
+      };
+    },
+  );
+  if (attempt && login) attempt.completed = true;
+  return login;
+};
+
+export const getAuthenticatedUser = async (
+  database: AuthPool,
+  rawSessionToken: string,
+  now = new Date(),
+): Promise<AuthenticatedUser | undefined> => {
+  const userId = await authenticateSession(database, rawSessionToken, now);
+  if (!userId) return undefined;
+  const result = await database.query<{
+    email: string;
+    emailVerified: boolean;
+    id: string;
+  }>(
+    `SELECT id::text,
+            email,
+            email_verified_at IS NOT NULL AS "emailVerified"
+       FROM users
+      WHERE id = $1`,
+    [userId],
+  );
+  return result.rows[0];
 };
 
 const issueAccountLinkSession = async (
