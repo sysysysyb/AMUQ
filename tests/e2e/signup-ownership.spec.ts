@@ -478,3 +478,71 @@ test("allows re-verification after proof expiry despite a completion cooldown", 
     page.getByRole("button", { name: "재전송", exact: true }),
   ).toBeEnabled();
 });
+
+for (const step of ["request", "resend", "verify", "complete"] as const) {
+  test(`honors Retry-After for a non-JSON signup ${step} response`, async ({
+    page,
+  }) => {
+    if (step === "complete") {
+      await verify(page);
+      await page.getByLabel("비밀번호", { exact: true }).fill("ValidPass1234");
+      await page
+        .getByLabel("비밀번호 확인", { exact: true })
+        .fill("ValidPass1234");
+    } else {
+      await page.goto("/signup");
+      await page.getByLabel("이메일", { exact: true }).fill("qa@example.com");
+      if (step !== "request") {
+        await page
+          .getByRole("button", { name: "인증 요청", exact: true })
+          .click();
+      }
+      if (step === "resend") await page.clock.fastForward(60_000);
+      if (step === "verify") {
+        await page.getByLabel("인증번호", { exact: true }).fill("123456");
+      }
+    }
+
+    const endpoint =
+      step === "request"
+        ? "challenges"
+        : step === "complete"
+          ? "complete"
+          : `challenges/${step}`;
+    await page.route(`**/api/auth/signup/${endpoint}`, (route) =>
+      route.fulfill({
+        status: 429,
+        contentType: "text/html",
+        headers: { "retry-after": "90" },
+        body:
+          step === "resend" || step === "complete"
+            ? ""
+            : "<h1>Too many requests</h1>",
+      }),
+    );
+    const action = page.getByRole("button", {
+      name:
+        step === "request"
+          ? "인증 요청"
+          : step === "resend"
+            ? "재전송"
+            : step === "verify"
+              ? "인증 확인"
+              : "회원가입",
+      exact: true,
+    });
+    await action.click();
+    await expect(page.getByRole("main").getByRole("alert")).toContainText(
+      "이후 다시 요청",
+    );
+    const blocked =
+      step === "verify"
+        ? page.getByRole("button", { name: "재전송", exact: true })
+        : action;
+    await expect(blocked).toBeDisabled();
+    await page.clock.fastForward(89_000);
+    await expect(blocked).toBeDisabled();
+    await page.clock.fastForward(1_000);
+    await expect(blocked).toBeEnabled();
+  });
+}

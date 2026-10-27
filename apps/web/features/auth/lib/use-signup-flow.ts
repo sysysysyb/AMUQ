@@ -138,7 +138,7 @@ export const useSignupFlow = () => {
           : { email, operationKey: operationKey.current },
       );
 
-      const body = await response.json();
+      const body = response.status === 429 ? {} : await response.json();
 
       if (request !== generation.current) return;
 
@@ -189,7 +189,7 @@ export const useSignupFlow = () => {
         code,
       });
 
-      const body = await response.json();
+      const body = response.status === 429 ? {} : await response.json();
 
       if (request !== generation.current) return;
 
@@ -253,7 +253,7 @@ export const useSignupFlow = () => {
         password,
       });
 
-      const body = await response.json();
+      const body = response.status === 429 ? {} : await response.json();
 
       if (request !== generation.current) return;
 
