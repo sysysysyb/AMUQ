@@ -1,0 +1,128 @@
+name: amuq-preview
+
+services:
+  postgres:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_DB: amuq_preview
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d amuq_preview"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  migrate:
+    image: amuq-preview:local
+    working_dir: /app/apps/api
+    command: ["node", "dist/db/migrate.js"]
+    environment:
+      AMUQ_ENV: production
+      DATABASE_URL: "postgresql://postgres:${POSTGRES_PASSWORD}@postgres:5432/amuq_preview"
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  api:
+    image: amuq-preview:local
+    working_dir: /app/apps/api
+    command: ["node", "dist/http/index.js"]
+    environment:
+      AMUQ_ENV: production
+      HOST: 0.0.0.0
+      PORT: "3001"
+      DATABASE_URL: "postgresql://postgres:${POSTGRES_PASSWORD}@postgres:5432/amuq_preview"
+      WEB_ORIGIN: ${WEB_ORIGIN:?WEB_ORIGIN is required}
+      AUTH_TOKEN_SECRET: ${AUTH_TOKEN_SECRET:?AUTH_TOKEN_SECRET is required}
+      AUTH_RATE_LIMIT_SECRET: ${AUTH_RATE_LIMIT_SECRET:?AUTH_RATE_LIMIT_SECRET is required}
+      PROXY_SHARED_SECRET: ${PROXY_SHARED_SECRET:?PROXY_SHARED_SECRET is required}
+      GOOGLE_OIDC_CLIENT_ID: ${GOOGLE_OIDC_CLIENT_ID:?GOOGLE_OIDC_CLIENT_ID is required}
+      GOOGLE_OIDC_CLIENT_SECRET: ${GOOGLE_OIDC_CLIENT_SECRET:?GOOGLE_OIDC_CLIENT_SECRET is required}
+      GOOGLE_OIDC_REDIRECT_URI: ${GOOGLE_OIDC_REDIRECT_URI:?GOOGLE_OIDC_REDIRECT_URI is required}
+      RESEND_WEBHOOK_SECRET: ${RESEND_WEBHOOK_SECRET:?RESEND_WEBHOOK_SECRET is required}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
+    healthcheck:
+      test:
+        - CMD
+        - node
+        - -e
+        - "fetch('http://127.0.0.1:3001/ready').then(r => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))"
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 20s
+
+  worker:
+    image: amuq-preview:local
+    working_dir: /app/apps/api
+    command: ["node", "dist/worker.js"]
+    environment:
+      AMUQ_ENV: production
+      DATABASE_URL: "postgresql://postgres:${POSTGRES_PASSWORD}@postgres:5432/amuq_preview"
+      WEB_ORIGIN: ${WEB_ORIGIN:?WEB_ORIGIN is required}
+      AUTH_TOKEN_SECRET: ${AUTH_TOKEN_SECRET:?AUTH_TOKEN_SECRET is required}
+      RESEND_API_KEY: ${RESEND_API_KEY:?RESEND_API_KEY is required}
+      RESEND_FROM_EMAIL: ${RESEND_FROM_EMAIL:?RESEND_FROM_EMAIL is required}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
+    stop_grace_period: 45s
+
+  proxy:
+    image: caddy:2-alpine
+    ports:
+      - "127.0.0.1:4443:443"
+    volumes:
+      - ./docker/preview:/etc/caddy:ro
+      - caddy-data:/data
+      - caddy-config:/config
+    networks:
+      default:
+        aliases:
+          - api.preview.internal
+    depends_on:
+      api:
+        condition: service_healthy
+
+  web:
+    image: amuq-preview:local
+    environment:
+      API_ORIGIN: https://api.preview.internal:8443
+      PROXY_SHARED_SECRET: ${PROXY_SHARED_SECRET:?PROXY_SHARED_SECRET is required}
+      NODE_EXTRA_CA_CERTS: /etc/amuq/preview-ca.crt
+    volumes:
+      - type: bind
+        source: ./docker/preview/local-ca.crt
+        target: /etc/amuq/preview-ca.crt
+        read_only: true
+        bind:
+          create_host_path: false
+    depends_on:
+      api:
+        condition: service_healthy
+      proxy:
+        condition: service_started
+    healthcheck:
+      test:
+        - CMD
+        - node
+        - -e
+        - "fetch('http://127.0.0.1:3000/login').then(r => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))"
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 20s
+
+volumes:
+  postgres-data:
+  caddy-data:
+  caddy-config:

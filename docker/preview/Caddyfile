@@ -1,0 +1,18 @@
+{
+	auto_https disable_redirects
+	default_sni 127.0.0.1
+	skip_install_trust
+}
+
+https://127.0.0.1 {
+	tls internal
+
+	reverse_proxy web:3000 {
+		header_up X-Vercel-Forwarded-For {remote_host}
+	}
+}
+
+https://api.preview.internal:8443 {
+	tls internal
+	reverse_proxy api:3001
+}
