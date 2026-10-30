@@ -1,34 +1,32 @@
 # Workflow Status
 
-> Updated: 2026-10-28 12:40 KST
+> Updated: 2026-10-30 21:33 KST
 
 ## Current state
 
-- Status: review
-- Stage: Stage 6 — Issue #8 / PR4 구성과 검증 및 기록 확인 완료, 로컬 커밋 승인 대기
+- Status: ready
+- Stage: Stage 6.4 — 구현과 규칙 커밋 완료, 검증 및 결과 기록 확정
 
 ## Active work
 
-- Issue: [#8](https://github.com/sysysysyb/AMUQ/issues/8)
-- Branch: `chore/8-add-docker-preview`
+- Issue: [#27 Rename application directories to frontend and backend](https://github.com/sysysysyb/AMUQ/issues/27)
+- Branch: `refactor/27-rename-app-directories`
 - Pull Request: None
-- Plan: [승인된 PR 순서](docs/issue-reports/issue-8.md), [U02](docs/plans/2026-09-09-0037-feat-amuq-mvp-requirements-plan.md)
+- Plan: [승인된 PR 순서](docs/issue-reports/issue-27.md)
 - Design: None
 
 ## Current checkpoint
 
-- Last completed: main `994f986` 기준으로 Docker 설정 4개 이관, 기록 지적 5건 수정과 재검토 완료. HTTPS E2E 84개와 검증용 CA 해제 확인, 최종 기록 확인 완료
-- Latest verification: 새 이미지의 API 및 Next 빌드, 기동과 실제 HTTPS 로그인, 재시작 후 계정 유지, 일반 186개 및 HTTPS E2E 84개, 타입과 린트 및 포맷 — passed. DB 전용 137개는 일반 검사에서 생략
+- Last completed: frontend `41ca74ea8182e66edf01ee03fc48b8d55679da55`, 문서 규칙 `953f897a11f5c7e3aa82371b57ca1cd746b3b611` 커밋 완료와 결과 기록 확정
+- Latest verification: 완료한 커밋과 검토된 파일 목록 및 내용 일치 확인
 
 ## Review focus
 
-- `Dockerfile.preview` — 빌드 대상과 비밀 파일 제외
-- `compose.preview.yaml` — DB 분리와 내부 API 비공개
-- `docker/preview/Caddyfile` — 공개 HTTPS와 내부 HTTPS 전달
+- None
 
 ## Remaining risk
 
-- DB pool과 요청 중 정리의 부하 및 운영 비용은 MVP 배포 직전 pool 1, 5, 10, 20 등으로 비교 예정
+- Vercel rootDirectory=`apps/web`: PR1 게시 전 전환 방식 확정, 병합 전 배포 가능 조건 확인 필요. Vercel preview가 Railway API를 사용함은 읽기 전용으로 확인했음. Railway 삭제와 DB 자료/설정 보존 여부 확인은 미실행
 
 ## Blockers
 
@@ -36,5 +34,5 @@
 
 ## Next action
 
-- Owner: User
-- Action: PR4의 작업별 세 묶음 로컬 커밋 승인
+- Owner: Codex
+- Action: 사용자 검토를 위한 27-1 handoff와 Vercel 경로 전환 방안 준비
