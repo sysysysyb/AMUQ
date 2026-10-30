@@ -8,7 +8,7 @@ export default defineConfig({
     alias: {
       "#api-test": fileURLToPath(new URL("./apps/api/test", import.meta.url)),
       "#api": fileURLToPath(new URL("./apps/api/src", import.meta.url)),
-      "@web": fileURLToPath(new URL("./apps/web", import.meta.url)),
+      "@frontend": fileURLToPath(new URL("./apps/frontend", import.meta.url)),
     },
   },
   test: {

@@ -81,7 +81,7 @@ importers:
         specifier: 0.31.11
         version: 0.31.11
 
-  apps/web:
+  apps/frontend:
     dependencies:
       class-variance-authority:
         specifier: 0.7.1

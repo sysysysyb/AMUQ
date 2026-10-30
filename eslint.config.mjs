@@ -27,7 +27,7 @@ export default defineConfig(
   {
     files: [
       "apps/api/src/**/*.ts",
-      "apps/web/{app,components,features,lib}/**/*.{ts,tsx}",
+      "apps/frontend/{app,components,features,lib}/**/*.{ts,tsx}",
     ],
     ignores: ["**/*.test.{ts,tsx}"],
     rules: {
