@@ -298,7 +298,7 @@ flowchart TB
 ```text
 /
 ├─ apps/
-│  ├─ web/                         # Next.js App Router, Vercel
+│  ├─ frontend/                    # Next.js App Router, Vercel
 │  │  ├─ app/
 │  │  ├─ components/
 │  │  ├─ features/
@@ -335,7 +335,7 @@ flowchart TB
 
 ### Key Technical Decisions
 
-- **KTD1. `web`, `api`, 공용 계약 패키지로 구성한 pnpm workspace를 사용한다.** 별도 worker 애플리케이션이나 범용 공용 계층은 만들지 않는다. API 패키지의 두 실행 진입점으로 Railway의 HTTP 서비스와 worker를 배포한다. Governs U01-U13.
+- **KTD1. `frontend`, `api`, 공용 계약 패키지로 구성한 pnpm workspace를 사용한다.** 별도 worker 애플리케이션이나 범용 공용 계층은 만들지 않는다. API 패키지의 두 실행 진입점으로 Railway의 HTTP 서비스와 worker를 배포한다. Governs U01-U13.
 - **KTD2. Fastify 5, Drizzle, PostgreSQL과 pg-boss를 사용한다.** Redis나 별도 메시지 브로커를 추가하지 않고 하나의 DB에서 제약, 트랜잭션과 작업 재시도를 관리한다. 오래 걸리는 외부 호출은 트랜잭션 밖에서 실행한다. Governs U01-U12.
 - **KTD3. 비공개 객체 저장소는 Cloudflare R2를 사용한다.** (session-settled: user-approved — Railway Buckets 대신 선택: R10과 R26의 비공개 PDF와 검증 가능한 삭제에는 저장 암호화와 객체 수명 주기 안전망이 필요하다.) Governs U04-U06, U12.
 - **KTD4. 트랜잭션 이메일은 Resend를 사용한다.** (session-settled: user-approved — Postmark 대신 선택: R1-R2의 저용량 인증 및 재설정 메일에는 Resend의 단순한 API, suppression과 webhook이면 충분하고 맞춤 보존과 Message Stream은 불필요하다.) Governs U02, U12.
@@ -607,7 +607,7 @@ MVP에서는 오답 및 통계 projection과 materialized view를 만들지 않�
 - **Covers:** R43-R45의 공통 기반.
 - **Depends on:** None.
 - **Outcome:** 웹, API, worker, PostgreSQL을 로컬과 CI에서 실행하고 Vercel→Railway 동일 출처 `/api` 경계를 검증할 수 있다.
-- **Primary files:** `package.json`, `pnpm-workspace.yaml`, `tsconfig.base.json`, `apps/web/app/layout.tsx`, `apps/web/app/api/[...path]/route.ts`, `apps/api/src/http/server.ts`, `apps/api/src/worker.ts`, `apps/api/src/db/schema.ts`, `.github/workflows/ci.yml`, `.env.example`.
+- **Primary files:** `package.json`, `pnpm-workspace.yaml`, `tsconfig.base.json`, `apps/frontend/app/layout.tsx`, `apps/frontend/app/api/[...path]/route.ts`, `apps/api/src/http/server.ts`, `apps/api/src/worker.ts`, `apps/api/src/db/schema.ts`, `.github/workflows/ci.yml`, `.env.example`.
 - **Work:**
   1. Node 22(최소 22.12)와 pnpm workspace, TypeScript strict, ESLint, Prettier, Vitest와 Playwright의 최소 설정을 만든다.
   2. Next.js shell과 Fastify health/readiness endpoint를 만들고 request id를 전 구간에 전달한다.
@@ -623,7 +623,7 @@ MVP에서는 오답 및 통계 projection과 materialized view를 만들지 않�
 - **Covers:** R1-R3, R43-R45.
 - **Depends on:** U01.
 - **Outcome:** 이메일/비밀번호와 Google 로그인, 인증 및 재설정, 명시적 identity 연결과 안전한 서버 세션을 제공한다.
-- **Primary files:** `apps/api/src/modules/auth/schema.ts`, `apps/api/src/modules/auth/service.ts`, `apps/api/src/modules/auth/routes.ts`, `apps/api/src/modules/auth/session.ts`, `apps/api/src/modules/email/outbox.ts`, `apps/api/src/jobs/send-email.ts`, `apps/web/app/(auth)/*`, `apps/web/features/auth/*`, `packages/contracts/src/auth.ts`.
+- **Primary files:** `apps/api/src/modules/auth/schema.ts`, `apps/api/src/modules/auth/service.ts`, `apps/api/src/modules/auth/routes.ts`, `apps/api/src/modules/auth/session.ts`, `apps/api/src/modules/email/outbox.ts`, `apps/api/src/jobs/send-email.ts`, `apps/frontend/app/(auth)/*`, `apps/frontend/features/auth/*`, `packages/contracts/src/auth.ts`.
 - **Work:**
   1. 이메일 소유권 확인 뒤에만 Argon2id password와 계정을 만든다. 가입 시도·번호·증명은 원문 대신 검증값을 저장하고 reset token과 `__Host-session` cookie를 유지한다. 세부 계약은 [승인된 가입 보완 계획](2026-10-21-1856-fix-signup-email-verification-plan.md)을 따른다.
   2. 가입 번호 10분·오입력 5회, 인증 뒤 가입 증명 30분, 재전송 60초 간격·첫 재전송부터 1시간 3회를 적용한다. reset token 30분, session idle 7일·absolute 30일과 인증 상태 변경 뒤 rotation은 유지한다. 구 가입 링크 활성화는 종료하고 엄격한 미인증 password-only 계정만 새 소유권 증명으로 복구한다.
@@ -640,7 +640,7 @@ MVP에서는 오답 및 통계 projection과 materialized view를 만들지 않�
 - **Covers:** R3, R5-R9, R27-R29의 기반.
 - **Depends on:** U02.
 - **Outcome:** 사용자별 private bank 목록, 상세, 테마, 영구 삭제와 immutable question revision 계약이 작동한다.
-- **Primary files:** `apps/api/src/modules/banks/*`, `apps/api/src/modules/questions/*`, `apps/api/src/db/schema/banks.ts`, `apps/api/src/db/schema/questions.ts`, `packages/contracts/src/questions.ts`, `apps/web/app/(app)/banks/*`, `apps/web/features/banks/*`, `apps/web/components/*`.
+- **Primary files:** `apps/api/src/modules/banks/*`, `apps/api/src/modules/questions/*`, `apps/api/src/db/schema/banks.ts`, `apps/api/src/db/schema/questions.ts`, `packages/contracts/src/questions.ts`, `apps/frontend/app/(app)/banks/*`, `apps/frontend/features/banks/*`, `apps/frontend/components/*`.
 - **Work:**
   1. bank, flat section, question, revision, option과 source relation을 제약 조건과 함께 migration으로 만든다.
   2. owner-scoped query를 service 공통 경계에서 강제하고 bank ID만으로 조회하는 repository 함수를 금지한다.
@@ -672,7 +672,7 @@ MVP에서는 오답 및 통계 projection과 materialized view를 만들지 않�
 - **Covers:** R10-R17, R20, R25-R26, AE1-AE2.
 - **Depends on:** U03, U04.
 - **Outcome:** 사용자가 한 번에 PDF 하나를 비공개로 올리고 분석 상태를 떠났다 돌아와도 복원하며 모든 페이지를 분류한 뒤에만 생성을 시작한다.
-- **Primary files:** `apps/api/src/modules/materials/*`, `apps/api/src/modules/generation/analysis-service.ts`, `apps/api/src/jobs/analyze-pdf.ts`, `apps/api/src/jobs/cleanup-material.ts`, `apps/web/app/(app)/banks/[bankId]/generate/*`, `apps/web/features/generation/*`, `packages/contracts/src/generation.ts`.
+- **Primary files:** `apps/api/src/modules/materials/*`, `apps/api/src/modules/generation/analysis-service.ts`, `apps/api/src/jobs/analyze-pdf.ts`, `apps/api/src/jobs/cleanup-material.ts`, `apps/frontend/app/(app)/banks/[bankId]/generate/*`, `apps/frontend/features/generation/*`, `packages/contracts/src/generation.ts`.
 - **Work:**
   1. upload intent에서 예상 크기가 50MB 이하인지 검사하고 크기, `application/pdf`, owner metadata를 5분짜리 PUT 서명에 포함한다. R2 contract test는 다른 크기의 요청이 저장 전에 거절되는지 확인한다. R2가 이를 지원하지 않으면 브라우저가 Vercel을 거치지 않고 Railway upload endpoint로 전송한다. 이 경로는 5분짜리 일회용 owner-bound token과 고정 origin CORS로 보호하며, 50MB를 넘는 즉시 스트리밍을 중단하고 부분 객체를 삭제한다. 완료 callback은 R2 `HEAD`의 존재, 실제 크기와 metadata를 upload intent와 비교한다. worker는 객체를 스트리밍하며 SHA-256, PDF magic bytes와 parser 결과를 검증한다. R2가 제공하지 않는 전체 객체 checksum에는 의존하지 않는다. U04에서 정한 처리 시간, 메모리, 페이지와 parser object 한도를 별도 worker에서 강제한다. 한도 초과와 결정적 parser 실패는 재시도하지 않고 cleanup으로 보낸다.
   2. 한 bank에는 종료되지 않은 PDF 작업을 하나만 허용하고 두 번째 시작은 기존 작업 재진입 정보를 포함한 409를 반환한다. job 또는 chapter별 `attempt_no`와 fencing token, `pg-boss` unique job key로 중복 callback, 재시도, 늦은 AI 응답이 최신 결과를 덮지 않게 한다.
@@ -689,7 +689,7 @@ MVP에서는 오답 및 통계 projection과 materialized view를 만들지 않�
 - **Covers:** R18-R26, F1-F2, AE3-AE5.
 - **Depends on:** U05.
 - **Outcome:** AI 초안을 부분 실패에서 복구하고 필요한 문제를 검토, 수정, 삭제, 비교한 뒤 한 번에 확정하며 원본 삭제를 검증한다.
-- **Primary files:** `apps/api/src/modules/generation/generation-service.ts`, `apps/api/src/modules/drafts/*`, `apps/api/src/jobs/generate-questions.ts`, `apps/api/src/jobs/detect-duplicates.ts`, `apps/api/src/jobs/cleanup-material.ts`, `apps/web/features/review/*`, `apps/web/app/(app)/generation-jobs/[jobId]/*`.
+- **Primary files:** `apps/api/src/modules/generation/generation-service.ts`, `apps/api/src/modules/drafts/*`, `apps/api/src/jobs/generate-questions.ts`, `apps/api/src/jobs/detect-duplicates.ts`, `apps/api/src/jobs/cleanup-material.ts`, `apps/frontend/features/review/*`, `apps/frontend/app/(app)/generation-jobs/[jobId]/*`.
 - **Work:**
   1. 시험 설정과 챕터별 문항 수 snapshot을 저장하고 U04에서 선택한 production integration contract와 schema version으로 chapter 단위 job을 실행한다. 긴 AI 호출은 DB transaction 밖에서 수행하고 현재 fencing token과 일치하는 결과만 짧은 transaction으로 수락한다.
   2. PDF의 예시 문제는 출제 형식 참고에만 사용한다. 사용자 설정과 스키마를 우선하고 자동 추가나 가까운 복제를 막으며, 학습 내용이나 예시 해설에서 정답 근거를 찾지 못한 챕터는 실패 처리한다.
@@ -707,7 +707,7 @@ MVP에서는 오답 및 통계 projection과 materialized view를 만들지 않�
 - **Covers:** R27-R29, R42, F5, AE9.
 - **Depends on:** U06.
 - **Outcome:** 사용자가 확정 문제를 수정하거나 이후 출제에서 제거하되 과거 점수와 당시 revision을 보존한다.
-- **Primary files:** `apps/api/src/modules/questions/service.ts`, `apps/api/src/modules/questions/routes.ts`, `apps/web/features/questions/*`, `packages/contracts/src/questions.ts`.
+- **Primary files:** `apps/api/src/modules/questions/service.ts`, `apps/api/src/modules/questions/routes.ts`, `apps/frontend/features/questions/*`, `packages/contracts/src/questions.ts`.
 - **Work:**
   1. 수정 시 row lock 안에서 다음 immutable revision과 option 및 source를 함께 삽입한다.
   2. 삭제는 question을 `archived`로 전환해 신규 출제에서 제외하고 복원 API와 UI를 만들지 않는다.
@@ -722,7 +722,7 @@ MVP에서는 오답 및 통계 projection과 materialized view를 만들지 않�
 - **Covers:** R30, R33-R34, R37, F3, AE7의 재개 부분.
 - **Depends on:** U07.
 - **Outcome:** 범위와 문항 수를 선택해 중복 없는 미니 테스트를 시작하고 답안을 안전하게 저장하고 재개한 뒤 제출한다.
-- **Primary files:** `apps/api/src/modules/study/session-service.ts`, `apps/api/src/modules/study/answer-service.ts`, `apps/api/src/modules/study/submission-service.ts`, `apps/api/src/db/schema/study.ts`, `apps/web/features/study/*`, `apps/web/app/(app)/banks/[bankId]/mini-test/*`.
+- **Primary files:** `apps/api/src/modules/study/session-service.ts`, `apps/api/src/modules/study/answer-service.ts`, `apps/api/src/modules/study/submission-service.ts`, `apps/api/src/db/schema/study.ts`, `apps/frontend/features/study/*`, `apps/frontend/app/(app)/banks/[bankId]/mini-test/*`.
 - **Work:**
   1. session 시작 시 revision, question order와 option order를 고정하고 answer-free `TestQuestionDTO`만 반환한다.
   2. 가능한 수보다 큰 문항 수를 서버와 UI에서 비활성화하고 요청 수가 조작되어도 실제 후보 수를 넘지 않는다.
@@ -738,7 +738,7 @@ MVP에서는 오답 및 통계 projection과 materialized view를 만들지 않�
 - **Covers:** R31-R34, F3, AE6-AE7.
 - **Depends on:** U08.
 - **Outcome:** 실제 시험 설정을 사용하고 문제 부족 시 비율로 시간을 줄이며 서버 시각 기준 자동 제출한다.
-- **Primary files:** `apps/api/src/modules/study/mock-exam-service.ts`, `apps/api/src/jobs/auto-submit-exam.ts`, `apps/web/features/study/ExamTimer.tsx`, `apps/web/app/(app)/banks/[bankId]/mock-exam/*`.
+- **Primary files:** `apps/api/src/modules/study/mock-exam-service.ts`, `apps/api/src/jobs/auto-submit-exam.ts`, `apps/frontend/features/study/ExamTimer.tsx`, `apps/frontend/app/(app)/banks/[bankId]/mock-exam/*`.
 - **Work:**
   1. `adjusted_seconds = floor(configured_seconds × actual_count / configured_count)`를 서버에서 계산하고 안내한다.
   2. `expires_at`를 권위값으로 사용하며 브라우저는 표시만 계산한다.
@@ -754,7 +754,7 @@ MVP에서는 오답 및 통계 projection과 materialized view를 만들지 않�
 - **Covers:** R35-R37, F4, AE8.
 - **Depends on:** U08.
 - **Outcome:** 세 릴레이가 시작 시 대상을 고정해 한 문제씩 제시하고 즉시 해설과 세션 요약을 남긴다.
-- **Primary files:** `apps/api/src/modules/study/relay-service.ts`, `apps/api/src/modules/bookmarks/*`, `apps/web/features/relay/*`, `apps/web/app/(app)/banks/[bankId]/relay/*`.
+- **Primary files:** `apps/api/src/modules/study/relay-service.ts`, `apps/api/src/modules/bookmarks/*`, `apps/frontend/features/relay/*`, `apps/frontend/app/(app)/banks/[bankId]/relay/*`.
 - **Work:**
   1. 챕터 릴레이는 선택한 flat section, 오답은 stable question별 최신 제출 결과, 북마크는 현재 bookmark를 시작 시 snapshot한다.
   2. 대상은 중복 없이 한 번씩 섞고 option order는 session에 고정한다.
@@ -770,7 +770,7 @@ MVP에서는 오답 및 통계 projection과 materialized view를 만들지 않�
 - **Covers:** R38-R42, F6을 제외한 학습 요약, Success Criteria의 계산 기반.
 - **Depends on:** U09, U10.
 - **Outcome:** 최근 모의고사, 모든 학습 모드, 최근 학습과 기간별 진행 지표를 현재 bank 범위에서 제공한다.
-- **Primary files:** `apps/api/src/modules/progress/queries.ts`, `apps/api/src/modules/progress/routes.ts`, `apps/web/features/dashboard/*`, `apps/web/features/charts/MockScoreTrend.tsx`, `apps/web/app/(app)/banks/[bankId]/page.tsx`, `apps/web/app/(app)/banks/[bankId]/my/*`.
+- **Primary files:** `apps/api/src/modules/progress/queries.ts`, `apps/api/src/modules/progress/routes.ts`, `apps/frontend/features/dashboard/*`, `apps/frontend/features/charts/MockScoreTrend.tsx`, `apps/frontend/app/(app)/banks/[bankId]/page.tsx`, `apps/frontend/app/(app)/banks/[bankId]/my/*`.
 - **Work:**
   1. 1개월, 6개월, 1년, 3년, 전체 기간을 서버 query로 구현하고 기본 1년을 적용한다.
   2. 현재 bank의 제출 session만 사용해 풀이, 정답률, 미응답, 현재 오답, bookmark, 재도전 정답률, 취약 section을 계산한다.
@@ -786,7 +786,7 @@ MVP에서는 오답 및 통계 projection과 materialized view를 만들지 않�
 - **Covers:** R2, R4, R8, R26, R45, F6, AE10.
 - **Depends on:** U03, U06, U08-U11.
 - **Outcome:** 자체 작성한 정보처리기사형 예제로 모든 학습 모드를 체험하고, 데모/계정/파일 데이터가 정책대로 접근 차단/삭제/재처리된다.
-- **Primary files:** `apps/api/src/modules/demo/*`, `apps/api/src/modules/account/deletion-service.ts`, `apps/api/src/jobs/expire-demo.ts`, `apps/api/src/jobs/finalize-account-deletion.ts`, `apps/api/src/jobs/reconcile-cleanup.ts`, `apps/api/src/seed/demo-question-bank.json`, `apps/web/app/demo/*`, `apps/web/features/account/*`.
+- **Primary files:** `apps/api/src/modules/demo/*`, `apps/api/src/modules/account/deletion-service.ts`, `apps/api/src/jobs/expire-demo.ts`, `apps/api/src/jobs/finalize-account-deletion.ts`, `apps/api/src/jobs/reconcile-cleanup.ts`, `apps/api/src/seed/demo-question-bank.json`, `apps/frontend/app/demo/*`, `apps/frontend/features/account/*`.
 - **Work:**
   1. 라이선스 및 작성 출처가 확인된 범용 IT seed를 서버 fixture로 검증하고 수정 불가능한 기준본으로 사용한다. 기존 서비스 데이터 이전 작업은 만들지 않는다.
   2. `체험하기`마다 hashed cookie token을 가진 demo session과 독립 bank copy를 만들고 정확한 `expires_at = created_at + 6h`를 저장한다. 검증된 proxy 경계의 client address별 PostgreSQL rate limit을 생성 전에 적용하고 초과 시 `429`와 `Retry-After`를 반환한다.
@@ -803,7 +803,7 @@ MVP에서는 오답 및 통계 projection과 materialized view를 만들지 않�
 - **Covers:** R43-R45, Success Criteria 측정과 전체 MVP 운영 검증.
 - **Depends on:** U01-U12.
 - **Outcome:** 오류 원인과 사용자 흐름을 개인정보 없이 관측하고 승인된 디자인/보안/핵심 흐름을 배포 환경에서 재검증한다.
-- **Primary files:** `apps/web/lib/telemetry/sentry.ts`, `apps/web/lib/telemetry/posthog.ts`, `apps/api/src/telemetry/sentry.ts`, `apps/api/src/telemetry/events.ts`, `packages/contracts/src/analytics-events.ts`, `tests/e2e/telemetry.spec.ts`, `docs/operations/runbook.md`.
+- **Primary files:** `apps/frontend/lib/telemetry/sentry.ts`, `apps/frontend/lib/telemetry/posthog.ts`, `apps/api/src/telemetry/sentry.ts`, `apps/api/src/telemetry/events.ts`, `packages/contracts/src/analytics-events.ts`, `tests/e2e/telemetry.spec.ts`, `docs/operations/runbook.md`.
 - **Work:**
   1. browser/API/worker Sentry를 release/environment와 연결하고 scrubber, alert와 source map upload를 설정한다.
   2. PostHog 명시 이벤트와 두 핵심 funnel/path dashboard를 만들고 demo와 registered actor를 safe 분류값으로 구분한다.

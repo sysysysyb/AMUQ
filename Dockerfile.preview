@@ -16,4 +16,4 @@ RUN pnpm build
 
 ENV NODE_ENV=production
 
-CMD ["pnpm", "--filter", "@amuq/web", "start", "--hostname", "0.0.0.0"]
+CMD ["pnpm", "--filter", "@amuq/frontend", "start", "--hostname", "0.0.0.0"]
