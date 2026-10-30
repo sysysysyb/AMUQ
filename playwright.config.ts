@@ -20,7 +20,7 @@ export default defineConfig({
       reuseExistingServer: false,
     },
     {
-      command: "corepack pnpm --filter @amuq/web exec next dev",
+      command: "corepack pnpm --filter @amuq/frontend exec next dev",
       env: { API_ORIGIN: apiOrigin },
       port: 3000,
       reuseExistingServer: false,
