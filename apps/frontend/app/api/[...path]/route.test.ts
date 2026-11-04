@@ -20,6 +20,39 @@ afterEach(() => {
 });
 
 describe("same-origin API proxy", () => {
+  it.each([
+    ["https://preview.ngrok-free.dev", "1"],
+    ["https://preview.ngrok-free.app", "1"],
+    ["https://api.example.test", null],
+    ["https://preview.ngrok-free.dev.example.test", null],
+  ])("handles the ngrok browser warning for %s", async (origin, expected) => {
+    process.env.API_ORIGIN = origin;
+    process.env.PROXY_SHARED_SECRET = "server-secret";
+    const upstream = vi.fn(
+      async (_input: string | URL | Request, init?: RequestInit) => {
+        expect(
+          new Headers(init?.headers).get("ngrok-skip-browser-warning"),
+        ).toBe(expected);
+        return Response.json({ status: "ok" });
+      },
+    );
+    vi.stubGlobal("fetch", upstream);
+
+    const response = await GET(
+      new Request("https://web.example.test/api/health", {
+        headers: {
+          "user-agent": "Mozilla/5.0",
+          "ngrok-skip-browser-warning": "browser-controlled",
+          "x-vercel-forwarded-for": "203.0.113.7",
+        },
+      }),
+      { params: Promise.resolve({ path: ["health"] }) },
+    );
+
+    expect(upstream).toHaveBeenCalledOnce();
+    await expect(response.json()).resolves.toEqual({ status: "ok" });
+  });
+
   it("rejects an insecure API origin in production", async () => {
     vi.stubEnv("NODE_ENV", "production");
     process.env.API_ORIGIN = "http://api.example.test";

@@ -1,8 +1,8 @@
 # Issue #27 / PR1 — Frontend 명칭과 실행 경로
 
-- 결과: frontend 명칭을 개발, 테스트, Docker 실행 경로에 일치시키고 기존 인증 동작 보존
+- 결과: frontend 명칭을 개발, 테스트, Docker 실행 경로에 일치시킴. 후속 요청으로 ngrok Preview 연결 보완 중
 - 요구사항: U01 실행 기반과 U02 인증 동작 유지. 기능, UI, 인증 계약과 정책 및 DB 구조 변경 없음
-- 상태: frontend와 문서 규칙을 별도 커밋으로 저장하고 결과 기록 확정. PR 게시 미승인
+- 상태: [PR #29](https://github.com/sysysysyb/AMUQ/pull/29) 게시 완료. ngrok 보완의 독립 검토와 재검토 완료, 커밋 승인 대기
 - PR 시작 SHA: `99174c7a5399bd7a99f60317d31b8c4d4770c082`. [Issue 목차](../issue-27.md) 참고
 
 ## 27-1. 주요 변경
@@ -11,7 +11,7 @@
 - 실행: 개발 명령, Playwright 기동, Docker 기본 CMD, lockfile의 frontend importer 갱신. 의존성 버전 유지
 - 품질 도구: Vitest 별칭, ESLint 적용 경로, Prettier Tailwind 원본 경로, VS Code CSS 연결 갱신
 - 후속 범위: `apps/api`, `@amuq/api`, `#api`와 `#api-test`는 PR2까지 유지
-- 내용 보존: Next AGENTS 블록, CLAUDE 연결, font와 icon, HTTP `/api` 프록시 유지. 명칭 치환 외 소스 변경은 2개 파일의 import 3개 줄바꿈뿐임
+- 명칭 변경 범위의 내용 보존: Next AGENTS 블록, CLAUDE 연결, font와 icon, HTTP `/api` 프록시 유지. 당시 명칭 치환 외 소스 변경은 2개 파일의 import 3개 줄바꿈뿐임. 후속 프록시 보완은 아래 별도 기록
 - 문서: PR별 검토와 승인, 마지막 누적 Issue 검토 규칙 반영. 모든 사람용 문서에 간결한 개조식 기준 적용. 활성 계획과 프록시 solution의 경로 갱신 및 tags 서식 정리
 - 재개 절차: 세션 재개, 하위 작업 착수와 커밋 또는 PR 준비 전에 기존 로컬 실행 맥락을 읽도록 연결
 
@@ -125,8 +125,55 @@
 
 </details>
 
+## Preview API Connection
+
+- 작업: 27-1의 배포 확인을 위해 사용자가 선택한 ngrok Free 연결 보완. U01 실행 기반과 U02 인증 동작 유지
+- 상태: Docker API의 외부 HTTPS 연결과 수정된 로컬 production 프록시 검증 완료. Vercel 배포 반영과 실제 계정 인증은 미완료
+- 브랜치: 사용자의 명시적 요청을 우선해 로컬 이름을 `refactor/27`로 변경. HEAD와 미커밋 파일 보존, PR #29는 기존 원격 브랜치 연결 유지. 승인 후 게시할 때 `git push origin HEAD:refactor/27-rename-app-directories`로 대상을 명시해 새 원격 브랜치와 중복 PR 생성 방지
+
+| 파일                                       | 책임과 유지 조건                                                                                                       |
+| ------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------- |
+| `compose.preview.ngrok.yaml`               | 별도 선택 파일로 ngrok만 추가. 고정 digest 이미지와 `api:3001` 사용, 호스트 포트 미공개. 로컬 agent 요청 검사 비활성화 |
+| `apps/frontend/app/api/[...path]/route.ts` | ngrok 무료 도메인에만 공식 안내 페이지 우회 헤더 설정. 브라우저 제공 값 제거, 기존 HTTPS와 클라이언트 주소 검증 유지   |
+| `.env.example`                             | 공개 URL과 토큰의 빈 설정 키 안내. 실제 값은 Git 제외 환경 파일에서만 사용                                             |
+
+- 원인과 수정: ngrok으로 전달한 브라우저 GET이 API JSON 대신 안내 HTML을 반환함을 확인. `.ngrok-free.dev`와 `.ngrok-free.app` 대상에만 `ngrok-skip-browser-warning` 적용
+- 테스트: 허용 도메인 두 개, 일반 도메인과 유사 도메인의 네 사례가 수정 전 실패하고 수정 후 통과. 예제 환경 키 검사는 추가한 빈 키 두 개를 반영
+- 구성 검증: 선택 파일 추가 전 누락 실패 확인, 추가 후 Compose 구성 검사 통과. 기존 서비스 설정과 실행 컨테이너, DB 볼륨 유지 확인
+- 실제 연결: ngrok 직접 health와 readiness 200, 우회 헤더를 포함한 미인증 요청 401 확인. 수정된 로컬 production 프록시를 경유한 health 200, readiness 200, 미인증 401, 빈 로그인 400과 잘못된 Origin 403 확인
+- 검증: `pnpm test`에서 26개 파일 190개 통과. 이전 25개 파일 175개는 integration 전체를 제외한 명령의 결과이며, 이번 집계는 신규 4개 사례와 DB 없이 실행 가능한 health integration 11개를 포함. DB 사례 137개 건너뜀은 별도 통합 명령으로 보완
+- 별도 검증: API 통합 13개 파일 148개, 인증 E2E 84개와 lint, 타입 검사, 빌드 및 변경한 실행 파일의 포맷 검사 통과. 문서와 checkpoint는 별도 Markdown 서식과 링크 검사 적용
+- 검증 환경 복구: 과거 테스트 DB의 연결 거부 후 새 격리 DB 사용. 통합 테스트가 마지막에 migration 이력을 제거해 첫 E2E 서버 시작이 실패했으며, 새 DB에 migration 적용 후 E2E 84개 통과. 출력 인코딩 오류는 테스트 종료 코드 0과 저장 로그 및 임시 DB 정리 결과로 재확인
+- 코드 정리: 재사용, 코드 품질, 효율과 테스트 가치 검토에서 추가 지적 없음. 단순화 변경 없이 증명 테스트 유지
+- **Claude review:** native `/code-review high`에서 현재 변경 8개 파일 검토. P2 1건과 P3 3건 보고, P0와 P1 없음. Git과 해시 재계산 및 제품 검사 재실행은 검토자 미실행
+- **Codex response to review:** 4건을 확인하고 게시 refspec, 집계 차이, 포맷 범위와 배포 후 주소 검증 계획을 기록에 반영. 사용자 지정 브랜치명은 유지
+- **Claude re-review:** native `/code-review high` 대상 재검토에서 4건의 처리와 최종 변경 확인, 추가 지적 없음. Git과 해시 및 제품 검사는 Codex 근거에 의존
+
+| ID          | 등급   | 영향과 처리                                                                                                                                                                                                  |
+| ----------- | ------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| NGROK-R1-01 | **P2** | 로컬과 원격 이름 차이로 일반 push가 실패하거나 PR #29 대신 새 브랜치가 만들어질 위험. 사용자 지정 이름을 유지하되 승인 후 명시적 refspec으로 게시하도록 기록                                                 |
+| NGROK-R1-02 | **P3** | 이전 단위 집계와 이번 집계의 차이를 설명하지 않음. 실제 명령과 health integration 11개 및 신규 4개 차이 명시                                                                                                 |
+| NGROK-R1-03 | **P3** | 포맷 검사 범위가 문서까지 포함한 것처럼 읽힘. 실행 파일 검사와 별도 문서 검사를 구분하고 표 서식 정리                                                                                                        |
+| NGROK-R1-04 | **P3** | 터널로 API가 인터넷에 공개되며, 공유 비밀값이 다르면 사용자들이 하나의 IP별 한도를 공유할 위험. 비밀값의 로그 없는 메모리 비교와 배포 후 주소별 한도 분리 확인을 남은 조건에 추가. 실제 Vercel 검증은 미실행 |
+
+- 검증 한계: Vercel 재배포, 실제 로그인과 Google callback 및 외부 메일 검증 미실행. 시각 변경이 없어 Figma 비교와 UI audit는 미실행
+- 남은 조건: 기존 API는 웹 Origin 하나만 허용하므로 Vercel Preview 전환 시 API와 worker의 WEB_ORIGIN, Google callback 및 Vercel의 API_ORIGIN 일치 확인 필요. 공유 비밀값은 출력 없이 메모리에서 비교하고, 배포 후 서로 다른 클라이언트 주소가 독립된 로그인 한도로 처리되는지 확인 예정. Resend 전달 결과 검증에는 Webhook 연결 확인 필요
+- 전체 Issue CE 검토와 학습: PR2 완료 후 최종 PR 게시 전 누적 검토 예정. 기존 프록시 학습 문서와 공식 우회 헤더로 설명 가능해 별도 학습 문서 미작성
+
+### Local Operation
+
+- 전제: 저장소 루트에서 기존 Preview API가 정상 실행 중인 상태. `<preview-env-file>`은 실제 로컬 환경 파일 경로로 치환
+- 환경 파일: `NGROK_URL`에 발급된 HTTPS 주소, `NGROK_AUTHTOKEN`에 토큰 저장. 토큰을 명령 인자나 로그에 출력하지 않음
+
+```sh
+docker compose -p amuq-preview -f compose.preview.yaml -f compose.preview.ngrok.yaml --env-file <preview-env-file> up -d --no-deps ngrok
+docker compose -p amuq-preview -f compose.preview.yaml -f compose.preview.ngrok.yaml --env-file <preview-env-file> stop ngrok
+```
+
+- 사용 중 PC와 Docker 및 터널 실행 필요. 터널 중지 시 외부 API 연결 종료, CI는 독립 테스트 환경 유지
+
 ## 남은 전달 조건
 
-- Vercel: rootDirectory=`apps/web` 확인. `buildCommand`, `installCommand`, `outputDirectory`는 모두 null임을 확인. PR 게시 전 경로 전환 방식 확정, 병합 전 새 경로 배포 가능 조건 확인 필요
-- Railway: Vercel preview가 해당 API를 사용함을 확인. 삭제 시 API 기능 확인을 Docker로 옮기는 방향과 재연결 조건 결정 필요. 실제 삭제, DB 자료와 설정 보존 여부 확인은 미실행
+- Vercel: 사용자의 rootDirectory 전환 후 현재 PR HEAD의 Preview 빌드 성공 확인. ngrok 프록시 보완의 승인된 커밋과 배포, 원격 환경변수 전환 및 실제 인증 확인 필요
+- Railway: 삭제 미실행. Vercel의 Docker API 전환과 기존 자료 보존 확인 전까지 삭제하지 않음
 - 전체 Issue CE 검토: PR2 완료 후 최종 PR 게시 전에 별도 수행 예정. 커밋, PR 게시와 병합은 각각 사용자 승인 필요
