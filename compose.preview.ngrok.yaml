@@ -1,0 +1,14 @@
+services:
+  ngrok:
+    image: ngrok/ngrok@sha256:ff3b5c3674432d14a786349908b7bdf28ee56c25662637afcbe7180d471993ef
+    command:
+      - http
+      - http://api:3001
+      - --url
+      - ${NGROK_URL:?NGROK_URL is required}
+      - --inspect=false
+    environment:
+      NGROK_AUTHTOKEN: ${NGROK_AUTHTOKEN:?NGROK_AUTHTOKEN is required}
+    depends_on:
+      api:
+        condition: service_healthy
