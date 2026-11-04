@@ -10,6 +10,7 @@ type StreamingRequestInit = RequestInit & { duplex?: "half" };
 const upstreamTimeoutMs = 10_000;
 const clientAddressHeader = "x-amuq-client-address";
 const proxySecretHeader = "x-amuq-proxy-secret";
+const ngrokWarningHeader = "ngrok-skip-browser-warning";
 const hopByHopHeaders = [
   "connection",
   "keep-alive",
@@ -79,6 +80,13 @@ const proxy = async (
   headers.delete("host");
   headers.delete(clientAddressHeader);
   headers.delete(proxySecretHeader);
+  headers.delete(ngrokWarningHeader);
+  if (
+    origin.hostname.endsWith(".ngrok-free.dev") ||
+    origin.hostname.endsWith(".ngrok-free.app")
+  ) {
+    headers.set(ngrokWarningHeader, "1");
+  }
   headers.set("x-request-id", requestId);
   if (proxySecret) {
     headers.set(clientAddressHeader, platformClientAddress(request));
