@@ -2,12 +2,12 @@
 
 - 결과: frontend 명칭을 개발, 테스트, Docker 실행 경로에 일치시킴. 고정 Vercel Preview에서 Docker API 연결과 실제 Google 로그인 및 메일과 Webhook 검증 완료
 - 요구사항: U01 실행 기반과 U02 인증 동작 유지. 기능, UI, 인증 계약과 정책 및 DB 구조 변경 없음
-- 상태: [PR #29](https://github.com/sysysysyb/AMUQ/pull/29) 게시 완료. 승인된 기존 6개 커밋 게시와 실제 Preview 검증 완료. 병합 미실행
+- 상태: [PR #29](https://github.com/sysysysyb/AMUQ/pull/29)의 기존 6개 커밋 게시와 실제 Preview 검증 완료. 고정 별칭 자동화 추가 구현, 게시와 자동 실행 확인은 미완료
 - PR 시작 SHA: `99174c7a5399bd7a99f60317d31b8c4d4770c082`. [Issue 목차](../issue-27.md) 참고
 
 ## Deployment Verification
 
-- 검증 기준: 제품 소스 HEAD `3354820052263aedfa9af5bdc9ab4cc6e4129644`의 Preview 재배포 READY와 GitHub `integration`, `Vercel`, `Vercel Preview Comments` 성공 확인. 이번 최종 기록 변경은 제품 소스 불변
+- 검증 기준: 제품 소스 HEAD `3354820052263aedfa9af5bdc9ab4cc6e4129644`의 Preview 재배포 READY와 GitHub `integration`, `Vercel`, `Vercel Preview Comments` 성공 확인. 해당 실동작 검증 이후 Frontend와 API 제품 소스 변경 없음. 후속 자동화는 Preview Alias Automation에 기록
 - 연결: Vercel Preview의 API_ORIGIN과 공유 비밀값, Docker API 및 worker의 WEB_ORIGIN과 Google callback 일치 확인. 조회 가능한 Production 환경변수 0개로 값 비교 대상 없음. Production 별칭 5개의 대상 배포 불변과 기존 DB 및 인증서 볼륨 보존 확인
 - 고정 주소: 기존 공통 Preview 별칭을 검토할 배포에 연결. 로그인 시작과 callback의 Origin을 일치시키며, 새 배포마다 READY 확인 후 별칭 대상 갱신 필요
 - 자동 검사 10개 통과: Vercel 경유 9개 조건과 서명된 직접 ngrok 요청의 주소별 한도 분리 1개. 경유 health와 readiness 200, 미인증 401, 빈 로그인 400과 다른 Origin 403 확인
@@ -42,8 +42,9 @@
 | 4    | 선택적 ngrok 구성과 빈 환경 예제   | `e0ab200d1e74056338ca0f80bdda480cfa358bd3` |
 | 5    | ngrok 안내 페이지 처리와 검증 기록 | `4336cf2536f1c1dc395a068e860012205d3a94b7` |
 | 6    | 게시 상태와 검증 범위 기록         | `3354820052263aedfa9af5bdc9ab4cc6e4129644` |
+| 7    | Preview 실동작 검증의 최종 기록    | `4df348418414013ec18909a8918b8cef290e9237` |
 
-- 검토 기준: 최종 인계 기록 검토 시작 시 위 6개 커밋을 PR #29에서 확인. 이후 게시 상태는 PR 커밋 목록으로 확인
+- 검토 기준: 1번부터 6번까지 PR #29 게시 확인. 7번은 사용자 승인 후 로컬 저장. 이후 게시 상태는 PR 커밋 목록으로 확인
 
 ## Rename Verification
 
@@ -239,7 +240,7 @@ docker compose -p amuq-preview -f compose.preview.yaml -f compose.preview.ngrok.
 | PR29-HANDOFF-R1-08 | **P3** | 끝난 게시 준비 설명이 현재 승인 대기로 읽힐 수 있음. 해당 줄을 과거 게시 준비 접기 블록으로 이동                                     |
 | PR29-HANDOFF-R1-09 | **P3** | 6개 커밋의 구성과 PR2 승인 절차가 모호함. 구현과 기록을 합한 수임을 명시하고 PR별 게이트 복원                                        |
 
-- 2차 대상 재검토에서 추가된 지적과 처리:
+- 2차부터 4차까지의 대상 재검토에서 추가된 지적과 처리:
 
 | ID                 | 등급   | 영향과 처리                                                                                                                                                      |
 | ------------------ | ------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -253,3 +254,66 @@ docker compose -p amuq-preview -f compose.preview.yaml -f compose.preview.ngrok.
 - 서로 다른 두 실제 네트워크의 클라이언트 비교는 미실행. 현재 증거는 실제 Vercel 주소 전달과 두 논리 주소의 한도 분리까지임
 - 기존 호스팅 삭제는 별도 범위로 미실행. 삭제 시 기존 자료 보존 확인 후 별도 승인 필요
 - 전체 Issue CE 검토는 backend PR2 완료 후 최초 Issue 기준부터 수행 예정. PR1 병합과 27-2 착수는 각각 별도 사용자 승인 대상
+
+## Preview Alias Automation
+
+- 결과: Vercel Preview가 READY가 되면 공통 고정 주소를 현재 PR의 최신 배포로 연결하는 자동화 구현. U01 실행 기반과 U02 인증 동작 유지
+- 범위: 기존 Git 배포와 Docker/ngrok 구성을 유지하고 GitHub Actions에서 별칭만 갱신. 토큰을 쓰는 단계에서는 main의 코드만 실행
+- 대상: main으로 향하는 동일 저장소의 열린 비초안 PR 하나만 허용. PR의 최신 SHA와 브랜치를 실제 Vercel 배포의 저장소 ID 및 프로젝트와 대조하고 Production 제외
+- 순서: 기존 별칭의 프로젝트와 Preview 대상 확인, 같은 브랜치의 이전보다 오래된 배포 제외, PR 상태 재조회 후 갱신하고 결과 재조회. 조건을 통과한 job을 직렬화하고 대기 실행이 교체되지 않도록 `queue: max` 적용
+
+| 파일과 책임                                                    | 유지 조건                                                                  |
+| -------------------------------------------------------------- | -------------------------------------------------------------------------- |
+| `.github/workflows/preview-alias.yml`                          | `vercel.deployment.ready` 이벤트만 수신하고 기본 브랜치 코드에서 토큰 사용 |
+| `.github/scripts/update-preview-alias.mjs::updatePreviewAlias` | Preview 및 최신 PR만 허용하고 기존 Production 별칭 변경 거부               |
+| `.github/scripts/update-preview-alias.test.mjs`                | 외부 API를 모의해 허용과 거부, 중복 및 이전 배포의 덮어쓰기 방지 검증      |
+| `.github/scripts/update-preview-alias-cli.test.mjs`            | 실제 CLI 환경변수 연결과 공급자별 오류 및 비공개 응답 미노출 검증          |
+| `.github/workflows/database.yml`, `eslint.config.mjs`          | 자동화 테스트를 기존 CI에 연결하고 Node 스크립트 lint 적용                 |
+
+### Setup and Operation
+
+- GitHub 설정: 사용자가 `VERCEL_TOKEN`을 Actions Secret으로 등록했고 이름 존재 확인. 프로젝트와 팀 및 고정 주소는 `VERCEL_PROJECT_ID`, `VERCEL_TEAM_ID`, `PREVIEW_ALIAS` 저장소 변수로 등록 후 값 대조. 비밀값 조회와 기록 없음
+- 최초 적용: 이벤트 워크플로는 main에 있어야 실행. PR1은 기존 수동 배포 확인을 유지하고, 최초 병합 후 다음 열린 PR의 Preview에서 실제 이벤트와 토큰 권한 및 별칭 갱신 확인 필요
+- 사용: 자동 갱신 성공 후 공통 고정 주소로 테스트. 별칭 갱신에는 PC 실행 불필요하며 실제 API와 인증 테스트에는 PC 및 Docker/ngrok 실행 필요
+- 복구: 여러 PR 때문에 중단되거나 draft 상태로 건너뛴 경우 조건 정리 후 해당 Actions 재실행. 토큰 만료 시 같은 Secret의 값 교체 필요
+- 큐 동작: [GitHub 공식 문서](https://docs.github.com/en/actions/how-tos/write-workflows/choose-when-workflows-run/control-workflow-concurrency)의 최대 100개 대기 설정 사용. 도착 순서를 신뢰하지 않고 갱신 직전에 PR HEAD 재확인
+
+### Verification and Review
+
+- Red/Green: 최초 28개 중 16개 실패를 확인한 뒤 구현해 통과. 검토 수정에서도 브랜치 인수와 오류 진단 실패를 먼저 확인했고 최종 자동화 및 CLI 검사 41개 통과. 외부 API는 모의 응답 사용
+- 회귀: 단위 179개와 실제 PostgreSQL 통합 148개, 인증 E2E 84개 통과. 포맷과 lint 및 타입 검사, 빌드와 DB schema 검사 통과. 검토 수정 후 자동화 검사와 포맷, lint 및 타입 검사 재실행 통과
+- 실패 정리: 첫 E2E 기동에서 `drizzle.__drizzle_migrations` 부재로 실패. 통합 테스트의 schema 정리 이후 migration 재적용을 빠뜨린 로컬 검증 순서가 원인. 기존 CI 순서대로 DB를 준비한 뒤 재실행 통과
+- 정리 검토: `ce-simplify-code`의 재사용과 품질, 효율, 테스트 및 주석 검토에서 수정 사항 없음. 외부 API 조회 중 PR 상태가 바뀔 수 있음을 설명하는 주석 유지
+- 미실행: 실제 GitHub 이벤트 자동 실행과 등록 토큰의 Vercel 권한 확인은 최초 적용 후 예정. 화면과 인증 제품 코드 변경이 없어 Figma 비교와 UI audit 미실행
+- **Claude review:** native 검토에서 변경 8개 파일과 PR 초안을 확인하고 P2 2건과 P3 5건 제시. P0와 P1 없음
+- **Codex response to review:** 최초 7건과 재검토 P3 8건을 검증해 동작과 진단, 검사 및 기록 보완. PR 경계 변형 검사와 공급자별 CLI 검사, 실제 공급자 GET 3회로 중복 처리 확인
+- **Claude re-review:** 2차 P3 5건, 3차 원문 P3 1건과 4차 표현 P3 2건 반영. 5차 확인에서 15건의 처리와 최종 문구 수용, 필수 수정 사항 없음. 실제 Actions 자동 실행은 미검증
+- 남은 조건: 커밋과 게시 및 병합의 개별 승인 유지. 전체 Issue CE 검토는 backend PR2 완료 후 최초 Issue 기준부터 수행
+
+<details>
+<summary>Alias Automation Review — 15건의 지적과 처리</summary>
+
+| ID          | 등급   | 영향과 처리                                                                                                                                                      |
+| ----------- | ------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| ALIAS-R1-01 | **P2** | 이전 PR의 더 늦은 배포가 현재 PR 연결을 막음. 같은 브랜치에서만 배포 시각을 비교하도록 수정하고 다른 PR 인수 회귀 검사 추가                                      |
+| ALIAS-R1-02 | **P2** | 관련 없는 이벤트가 대기 중인 갱신을 취소할 수 있음. 조건을 통과한 job에 직렬화를 적용하고 `queue: max`로 대기 실행 교체 방지                                     |
+| ALIAS-R1-03 | **P3** | 실패 원인을 로그에서 구분할 수 없음. 스크립트가 만든 안전한 오류만 상세 출력하고 외부 응답 파싱 오류는 일반 문구 유지                                            |
+| ALIAS-R1-04 | **P3** | PR 재확인 검사가 무관한 예외에도 통과하며 일부 거부 조건과 CLI 연결 누락. 정확한 skip 사유와 예외를 나눠 검사하고 메타데이터 거부 및 실제 CLI 환경변수 검사 추가 |
+| ALIAS-R1-05 | **P3** | 토큰을 사용하는 런타임 준비 action이 이동 가능한 태그에 의존. checkout과 setup-node를 공식 태그에서 확인한 커밋 SHA로 고정                                       |
+| ALIAS-R1-06 | **P3** | PR 제목과 핵심 파일 목록 및 과거 검증 문구에서 새 범위를 놓칠 수 있음. 자동화가 드러나는 제목과 워크플로 검토 위치, 현재 검증 결과로 초안 보완                   |
+| ALIAS-R1-07 | **P3** | 변경한 표의 원문 정렬과 문장 끝 표기가 기존 기록과 다름. 변경한 세 표만 정렬하고 새 항목의 끝 표기 통일                                                          |
+
+- 2차부터 4차까지의 대상 재검토에서 추가된 지적과 처리
+
+| ID          | 등급   | 영향과 처리                                                                                                                                                 |
+| ----------- | ------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| ALIAS-R2-01 | **P3** | PR 100개 검사가 다른 거부 분기 때문에 통과할 수 있음. 비대상 99개와 현재 PR 하나로 정확한 거부 사유를 검사하고 경계 조건을 약화한 별도 복사본에서 실패 확인 |
+| ALIAS-R2-02 | **P3** | GitHub와 Vercel의 HTTP 및 연결 오류를 구분하지 못함. 고정 공급자 이름만 진단에 추가하고 두 공급자의 실제 CLI 오류 및 비공개 응답 미노출 검사                |
+| ALIAS-R2-03 | **P3** | PR 초안에 남은 문서만 변경했다는 표현으로 범위 오해 가능. 연결 당시 배포 근거와 현재 워크플로 및 스크립트 변경의 검증을 구분                                |
+| ALIAS-R2-04 | **P3** | 핵심 파일 표에 CLI 검사 책임 누락. 환경변수 연결과 안전한 진단 출력을 담당하는 테스트 파일 추가                                                             |
+| ALIAS-R2-05 | **P3** | 운영 목록 사이 빈 줄로 목록 간격이 달라짐. 불필요한 빈 줄 제거와 원문 확인                                                                                  |
+| ALIAS-R3-01 | **P3** | 검토 표 사이 중복 빈 줄로 원문 서식이 달라짐. 중복 줄 한 개 제거. 렌더링 결과는 동일                                                                        |
+| ALIAS-R4-01 | **P3** | 3차 지적이 2차 제목 아래 있어 회차를 오해할 수 있음. 제목을 2차부터 4차까지로 확장                                                                          |
+| ALIAS-R4-02 | **P3** | 묶음 행에서 목록 간격 변화와 원문 확인이 덜 분명해짐. R2와 R3 행을 분리하고 각 영향과 처리 복원                                                             |
+
+</details>

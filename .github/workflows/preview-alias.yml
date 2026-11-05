@@ -1,0 +1,37 @@
+name: Preview Alias
+
+on:
+  repository_dispatch:
+    types: [vercel.deployment.ready]
+
+permissions:
+  contents: read
+  pull-requests: read
+
+jobs:
+  update:
+    if: >-
+      github.event.client_payload.environment == 'preview' &&
+      github.event.client_payload.project.id == vars.VERCEL_PROJECT_ID
+    concurrency:
+      group: fixed-preview-alias
+      cancel-in-progress: false
+      queue: max
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+        with:
+          ref: ${{ github.event.repository.default_branch }}
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7
+        with:
+          node-version: 22.13.0
+      - name: Update fixed Preview alias
+        run: node .github/scripts/update-preview-alias.mjs
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          VERCEL_PROJECT_ID: ${{ vars.VERCEL_PROJECT_ID }}
+          VERCEL_TEAM_ID: ${{ vars.VERCEL_TEAM_ID }}
+          PREVIEW_ALIAS: ${{ vars.PREVIEW_ALIAS }}
