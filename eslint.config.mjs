@@ -13,6 +13,18 @@ export default defineConfig(
       "tools/**",
     ],
   },
+  {
+    files: [".github/scripts/**/*.mjs"],
+    languageOptions: {
+      globals: {
+        AbortSignal: "readonly",
+        fetch: "readonly",
+        Response: "readonly",
+        structuredClone: "readonly",
+        URL: "readonly",
+      },
+    },
+  },
   eslint.configs.recommended,
   ...tseslint.configs.recommended,
   {
