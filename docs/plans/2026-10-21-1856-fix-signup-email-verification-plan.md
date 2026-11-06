@@ -159,7 +159,7 @@ stateDiagram-v2
 
 ### Sources and Risks
 
-- 현재 구현: `apps/api/src/modules/auth/service.ts::registerPasswordUser/verifyEmailAddress/completeGoogleLogin`, `apps/api/src/jobs/send-email.ts::nextPendingEmail/renderEmail`. 가상의 `email/outbox.ts` 파일을 새로 만들지 않는다.
+- 현재 구현: `apps/backend/src/modules/auth/service.ts::registerPasswordUser/verifyEmailAddress/completeGoogleLogin`, `apps/backend/src/jobs/send-email.ts::nextPendingEmail/renderEmail`. 가상의 `email/outbox.ts` 파일을 새로 만들지 않는다.
 - 잠금·시간·짧은 트랜잭션은 `docs/solutions/architecture-patterns/keep-authentication-transactions-short-and-lock-users-first.md`, 발송 불변 조건은 `make-authentication-email-outbox-retries-stable-and-race-safe.md`, 익명 응답은 `equalize-anonymous-authentication-response-timing.md`를 따른다(후자 둘도 같은 디렉터리).
 - [OWASP OTP 저장](https://cheatsheetseries.owasp.org/cheatsheets/Multifactor_Authentication_Cheat_Sheet.html#hashing-otps)은 짧은 코드의 일반 해시만으로 오프라인 대입을 막을 수 없음을 설명한다. KTD2는 이 위험에 서버 비밀키를 적용한 구현 선택이다.
 - [PostgreSQL 잠금](https://www.postgresql.org/docs/current/explicit-locking.html), [시각 함수](https://www.postgresql.org/docs/current/functions-datetime.html#FUNCTIONS-DATETIME-CURRENT), [Node 22 crypto](https://nodejs.org/download/release/v22.13.0/docs/api/crypto.html), [Resend idempotency](https://resend.com/docs/dashboard/emails/idempotency-keys)를 확인했다. PostgreSQL current 문서는18이며 실제 서버 버전은 이번 계획에서 조회하지 않았다. 선택한 잠금·제약은 현행 pg 사용 방식에 한정한다.
@@ -175,7 +175,7 @@ stateDiagram-v2
 - **Goal:** 기존 가입을 아직 전환하지 않고 새 OTP·가입 증명·발송 기반을 독립 검증한다.
 - **Requirements:** R1–R3, R9; KTD1–KTD4/KTD6.
 - **Dependencies:** 상위 U01 및 현재 Issue #8 기반.
-- **Files:** `apps/api/src/modules/auth/schema.ts`, 신규 `signup-challenge.ts`와 `signup-challenge.test.ts`(같은 디렉터리), `rate-limit.ts`, `apps/api/src/modules/email/schema.ts`, `apps/api/src/jobs/send-email.ts`·`send-email.test.ts`, `apps/api/drizzle/`, `apps/api/src/db/schema.ts`, `apps/api/src/db/migrations.test.ts`, `apps/api/test/integration/database.test.ts`, `apps/api/test/integration/auth-email-rate-limit.test.ts`.
+- **Files:** `apps/backend/src/modules/auth/schema.ts`, 신규 `signup-challenge.ts`와 `signup-challenge.test.ts`(같은 디렉터리), `rate-limit.ts`, `apps/backend/src/modules/email/schema.ts`, `apps/backend/src/jobs/send-email.ts`·`send-email.test.ts`, `apps/backend/drizzle/`, `apps/backend/src/db/schema.ts`, `apps/backend/src/db/migrations.test.ts`, `apps/backend/test/integration/database.test.ts`, `apps/backend/test/integration/auth-email-rate-limit.test.ts`.
 - **Approach:** additive schema와 세대별 파생 자료를 추가하고 기존 worker가 신형 OTP와 기존 reset을 함께 읽게 한다. 기존 제한 함수 전체를 바꾸지 않고 signup 발급에 필요한 원자적 입장·60초 간격만 분리한다. 구 API의 활성화 동작은 U2와 함께 교체한다.
 - **Execution note:** 실제 PostgreSQL의 실패하는 동시 발급·오입력·만료 검사부터 구현한다.
 - **Test scenarios:**
@@ -192,7 +192,7 @@ stateDiagram-v2
 - **Goal:** 새 흐름을 실제 가입 경로로 전환하고 취약한 구 경로를 함께 닫는다.
 - **Requirements:** R4–R9; KTD4–KTD6; 상위 U02/R1/R3/R43/R44.
 - **Dependencies:** U1. API·웹·구 경로 차단은 한 응집된 전환으로 적용한다.
-- **Files:** `apps/api/src/modules/auth/service.ts`, `apps/api/src/modules/auth/routes.ts`의 기존 본문 schema, `apps/api/src/worker.ts`·`worker.test.ts`, `packages/contracts/src/auth.ts`, `apps/web/features/auth/screens/signup-screen.tsx`, `verify-email-screen.tsx`, 기존 `account-link-screen.tsx`·인증 lib, `apps/api/test/support/auth-database.ts`, `auth-password.test.ts`·`auth-google.test.ts`·`auth-account-link.test.ts`·`auth-password-reset.test.ts`·`auth-login-rate-limit.test.ts`와 `database.test.ts`(모두 `apps/api/test/integration/`), `tests/e2e/auth-ui.spec.ts`, `docs/DESIGN.md`, 상위 계획·Issue #8 계약·추적 Issue 보고서·`status.md`. 사용자 결정에 따라 별도 상세 보고서는 더 만들거나 갱신하지 않는다.
+- **Files:** `apps/backend/src/modules/auth/service.ts`, `apps/backend/src/modules/auth/routes.ts`의 기존 본문 schema, `apps/backend/src/worker.ts`·`worker.test.ts`, `packages/contracts/src/auth.ts`, `apps/frontend/features/auth/screens/signup-screen.tsx`, `verify-email-screen.tsx`, 기존 `account-link-screen.tsx`·인증 lib, `apps/backend/test/support/auth-database.ts`, `auth-password.test.ts`·`auth-google.test.ts`·`auth-account-link.test.ts`·`auth-password-reset.test.ts`·`auth-login-rate-limit.test.ts`와 `database.test.ts`(모두 `apps/backend/test/integration/`), `tests/e2e/auth-ui.spec.ts`, `docs/DESIGN.md`, 상위 계획·Issue #8 계약·추적 Issue 보고서·`status.md`. 사용자 결정에 따라 별도 상세 보고서는 더 만들거나 갱신하지 않는다.
 - **Approach:** API와 웹에 새 계약을 연결하고 구 링크를 비활성화한다. 인증 전 password가 네트워크로 전송되지 않게 한다. uncontrolled 폼의 unmount에 의존하지 않고 KTD5로 입력을 보존한다. 테스트의 `createVerifiedPasswordLogin`도 실제 새 API 경로로 전환한다. 상위 계약은 이번 가입 부분만 동기화한다.
 - **Execution note:** 선점 비밀번호 활성화와 Google 차단의 실패 회귀를 먼저 고정한다.
 - **Test scenarios:**
