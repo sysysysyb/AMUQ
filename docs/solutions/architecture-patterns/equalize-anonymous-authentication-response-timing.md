@@ -1,7 +1,7 @@
 ---
 title: Equalize anonymous authentication response timing
 date: 2026-09-29
-last_updated: 2026-10-08
+last_updated: 2026-11-07
 category: architecture-patterns
 module: authentication
 problem_type: architecture_pattern
@@ -25,9 +25,9 @@ Returning the same status and body does not by itself prevent account enumeratio
 Use the same application work shape before deciding whether a real account receives a token:
 
 - Generate token material regardless of whether the account exists.
-- Execute one parameterized transaction and one data-modifying CTE in both cases; let the candidate row make writes conditional inside PostgreSQL rather than returning early in application code (`apps/api/src/modules/auth/service.ts:313`, `apps/api/src/modules/auth/service.ts:458`).
+- Execute one parameterized transaction and one data-modifying CTE in both cases; let the candidate row make writes conditional inside PostgreSQL rather than returning early in application code (`apps/backend/src/modules/auth/service.ts`).
 - Keep the public status and body identical.
-- Add a short minimum response duration at the HTTP boundary to absorb the remaining difference between a CTE that writes rows and one whose candidate is empty (`apps/api/src/modules/auth/routes.ts:39`, `apps/api/src/modules/auth/routes.ts:515`).
+- Add a short minimum response duration at the HTTP boundary to absorb the remaining difference between a CTE that writes rows and one whose candidate is empty (`apps/backend/src/modules/auth/routes.ts`).
 - Retain identifier and client-address rate limits so an attacker cannot cheaply collect a large timing sample.
 
 The current pending implementation uses a 250 ms response floor for verification resend and password-reset request. That value is a protective floor, not a universal constant. If normal successful requests begin crossing it, measure production latency and raise the floor rather than assuming the original value still hides the two distributions.
@@ -46,8 +46,8 @@ No finite floor hides an unusually slow lock wait or database incident. Keep aut
 
 ## Examples
 
-- Unit coverage checks that registered and unregistered paths execute the same number of database statements (`apps/api/src/modules/auth/service.test.ts:165`).
-- PostgreSQL-backed HTTP coverage checks that both verification-resend and password-reset responses reach the configured timing floor while preserving identical `202` bodies (`apps/api/test/integration/auth-password.test.ts:193`, `apps/api/test/integration/auth-password.test.ts:274`).
+- Unit coverage checks that registered and unregistered paths execute the same number of database statements (`apps/backend/src/modules/auth/service.test.ts`).
+- PostgreSQL-backed HTTP coverage checks that both verification-resend and password-reset responses reach the configured timing floor while preserving identical `202` bodies (`apps/backend/test/integration/auth-password.test.ts`).
 
 ## Related
 

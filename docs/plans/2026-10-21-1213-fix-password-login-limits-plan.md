@@ -150,7 +150,7 @@ flowchart TB
 
 - **Requirements:** R1-R5, R8; KTD1-KTD4, KTD7.
 - **Depends on:** 기존 U02 인증·DB migration 기반.
-- **Files:** 새 `apps/api/src/modules/auth/login-rate-limit.ts`, 새 `apps/api/src/modules/auth/login-rate-limit.test.ts`, `apps/api/src/modules/auth/schema.ts`, `apps/api/src/modules/auth/schema.test.ts`, `apps/api/drizzle/`의 새 migration·meta, `apps/api/test/support/auth-database.ts`, `apps/api/test/integration/database.test.ts`, 새 `apps/api/test/integration/auth-login-rate-limit.test.ts`.
+- **Files:** 새 `apps/backend/src/modules/auth/login-rate-limit.ts`, 새 `apps/backend/src/modules/auth/login-rate-limit.test.ts`, `apps/backend/src/modules/auth/schema.ts`, `apps/backend/src/modules/auth/schema.test.ts`, `apps/backend/drizzle/`의 새 migration·meta, `apps/backend/test/support/auth-database.ts`, `apps/backend/test/integration/database.test.ts`, 새 `apps/backend/test/integration/auth-login-rate-limit.test.ts`.
 - **Approach:** 전용 테이블·HMAC 도메인과 모호하지 않은 조합 직렬화를 추가한다. IP 계수, 조합 예약, 결과 완료와 제한된 만료 청소를 짧은 DB 작업으로 분리한다. 과거 로그인 횟수는 읽지 않는다.
 - **Execution note:** 경계·동시 입장의 의도한 실패를 먼저 확인한 뒤 최소 구현한다.
 - **Test scenarios:** AE1-AE4, 빈 행 동시 생성, 중복 예약·완료, DB 제약 거절, 프로세스 중단 뒤 원래 창 만료로 회복, 원문 부재·비밀별 digest 분리, 잠금 대기 중 만료, 이전 창 완료·동시 정리, 예약 차단에도 IP 증가를 실제 PostgreSQL 별도 연결로 검증한다.
@@ -160,7 +160,7 @@ flowchart TB
 
 - **Requirements:** R1-R8; KTD2-KTD6.
 - **Depends on:** U1.
-- **Files:** `apps/api/src/modules/auth/routes.ts`, `apps/api/src/modules/auth/routes.test.ts`, `apps/api/src/modules/auth/service.ts`, `apps/api/src/modules/auth/service.test.ts`, `apps/api/test/integration/auth-password.test.ts`, `apps/api/test/integration/auth-account-link.test.ts`, `apps/api/test/integration/auth-login-rate-limit.test.ts`.
+- **Files:** `apps/backend/src/modules/auth/routes.ts`, `apps/backend/src/modules/auth/routes.test.ts`, `apps/backend/src/modules/auth/service.ts`, `apps/backend/src/modules/auth/service.test.ts`, `apps/backend/test/integration/auth-password.test.ts`, `apps/backend/test/integration/auth-account-link.test.ts`, `apps/backend/test/integration/auth-login-rate-limit.test.ts`.
 - **Approach:** 본문 전 IP 집계와 두 handler의 조합 입장을 연결한다. 내부 결과를 구분하되 기존 직접 호출 fixture·HTTP 응답을 유지한다. 정상 완료와 세션 변경을 같은 트랜잭션에서 처리하고 users 우선 잠금과 현재 해시 재검증을 보존한다.
 - **Execution note:** HTTP 회귀와 성공·실패 분류를 먼저 실패시킨 뒤 연결한다. 제품 코드에 테스트 전용 우회 경로를 만들지 않는다.
 - **Test scenarios:** AE1·AE2·AE5, 정상 세션·연결 필요 200, 미등록·미인증 401, 연결 만료·해시 변경 경합, malformed JSON·스키마·Origin·쿠키 거절의 IP 소비, query·메서드·다른 경로 제외, 동일 요청 이중 집계 부재, 해시 중 풀 연결 반환, 완료 DB 오류 때 쿠키 미발급, 성공/실패 완료 순서 교차를 검증한다.
@@ -170,7 +170,7 @@ flowchart TB
 
 - **Requirements:** R1-R8.
 - **Depends on:** U1, U2.
-- **Files:** `apps/api/test/integration/auth-login-rate-limit.test.ts`, `apps/api/test/integration/auth-email-rate-limit.test.ts`, `apps/api/test/integration/health.test.ts`, `apps/api/test/integration/database.test.ts`, `tests/e2e/auth-ui.spec.ts`, `docs/issue-reports/issue-8.md`, `status.md`.
+- **Files:** `apps/backend/test/integration/auth-login-rate-limit.test.ts`, `apps/backend/test/integration/auth-email-rate-limit.test.ts`, `apps/backend/test/integration/health.test.ts`, `apps/backend/test/integration/database.test.ts`, `tests/e2e/auth-ui.spec.ts`, `docs/issue-reports/issue-8.md`, `status.md`.
 - **Approach:** 결정적 장벽과 복수 pool로 API 인스턴스 간 경합을 재현한다. 다른 인증 scope와 기존 프록시 주소 신뢰·세션 흐름을 회귀 검증한다. 기존 E2E 파일에서 영향받는 경로를 확인하고 필요한 회귀만 추가한다. 전달 보고에는 실제 결과와 미실행 항목을 구분한다.
 - **Test scenarios:** A/B 성공·C 실패 완료 순서, 만료 후 이전 성공·실패, 요청 중단과 서버 예외, IP와 조합의 별도 만료, 기존 가입·재전송·재설정 한도, 다른 IP의 로그인 가능, 기존 429 안내와 로그아웃·재로그인을 확인한다.
 - **Verification:** 아래 검증과 독립 리뷰가 실제로 완료되고, 보류된 가입 문제를 해결했다고 표현하지 않는다.
@@ -181,7 +181,7 @@ flowchart TB
 
 | 검증           | 명령·범위                                                                                                                                                                                             | 확인할 결과                                                       |
 | -------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------- |
-| 집중 단위      | `pnpm exec vitest run apps/api/src/modules/auth/login-rate-limit.test.ts apps/api/src/modules/auth/routes.test.ts apps/api/src/modules/auth/service.test.ts apps/api/src/modules/auth/schema.test.ts` | 새 동작 Red/Green, 해시 중 DB 미점유·결과 분류                    |
+| 집중 단위      | `pnpm exec vitest run apps/backend/src/modules/auth/login-rate-limit.test.ts apps/backend/src/modules/auth/routes.test.ts apps/backend/src/modules/auth/service.test.ts apps/backend/src/modules/auth/schema.test.ts` | 새 동작 Red/Green, 해시 중 DB 미점유·결과 분류                    |
 | 실DB 통합      | `pnpm test:integration`                                                                                                                                                                               | 테스트 DB 안전 guard, 새 migration·다중 연결 경합·기존 scope 회귀 |
 | 전체 단위      | `pnpm test`                                                                                                                                                                                           | 기존 계약·API·웹 회귀 없음                                        |
 | 타입·린트·포맷 | `pnpm typecheck`, `pnpm lint`, `pnpm format:check`                                                                                                                                                    | 새 schema·함수·테스트·문서 검사 통과                              |

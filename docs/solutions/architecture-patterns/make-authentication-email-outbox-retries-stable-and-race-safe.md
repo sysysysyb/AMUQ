@@ -1,7 +1,7 @@
 ---
 title: Make authentication email outbox retries stable and race safe
 date: 2026-09-27
-last_updated: 2026-10-08
+last_updated: 2026-11-07
 category: architecture-patterns
 module: auth-email-delivery
 problem_type: architecture_pattern
@@ -37,19 +37,19 @@ These failures must be handled as one delivery invariant. Fixing only the provid
 
 ## Guidance
 
-Create the token and outbox row in one data-modifying SQL statement so neither can commit alone (`apps/api/src/modules/auth/service.ts:18`, `apps/api/src/modules/auth/service.ts:35`). Persist the token hash and a non-secret signing-key identifier, never the raw token or signing secret. The raw token can be reconstructed deterministically from its purpose, ID, and matching secret (`apps/api/src/modules/auth/token.ts:26`, `apps/api/src/modules/auth/token.ts:36`).
+Create the token and outbox row in one data-modifying SQL statement so neither can commit alone (`apps/backend/src/modules/auth/service.ts`). Persist the token hash and a non-secret signing-key identifier, never the raw token or signing secret. The raw token can be reconstructed deterministically from its purpose, ID, and matching secret (`apps/backend/src/modules/auth/token.ts`).
 
-Before the first provider call, hash a deterministic serialization of every provider-request input, including the idempotency key. Every retry must reconstruct the same inputs and match that fingerprint; payload drift becomes a terminal failure before any external call (`apps/api/src/jobs/send-email.ts:376`). Keep the provider idempotency key tied to the durable outbox ID (`apps/api/src/jobs/send-email.ts:468`).
+Before the first provider call, hash a deterministic serialization of every provider-request input, including the idempotency key. Every retry must reconstruct the same inputs and match that fingerprint; payload drift becomes a terminal failure before any external call (`apps/backend/src/jobs/send-email.ts`). Keep the provider idempotency key tied to the durable outbox ID (`apps/backend/src/jobs/send-email.ts`).
 
-Claim work atomically with `FOR UPDATE ... SKIP LOCKED`, increment the attempt count in the same statement, and return the claim's `updated_at` value (`apps/api/src/jobs/send-email.ts:309`, `apps/api/src/jobs/send-email.ts:329`). Treat that timestamp as a compare-and-swap fencing token. Fingerprint writes, terminal failures, provider success, and provider failure must all require the same claim value. Renew the claim immediately before the provider call (`apps/api/src/jobs/send-email.ts:205`, `apps/api/src/jobs/send-email.ts:401`). A worker whose claim expired then observes a stale result and exits without sending or changing state.
+Claim work atomically with `FOR UPDATE ... SKIP LOCKED`, increment the attempt count in the same statement, and return the claim's `updated_at` value (`apps/backend/src/jobs/send-email.ts`). Treat that timestamp as a compare-and-swap fencing token. Fingerprint writes, terminal failures, provider success, and provider failure must all require the same claim value. Renew the claim immediately before the provider call (`apps/backend/src/jobs/send-email.ts`). A worker whose claim expired then observes a stale result and exits without sending or changing state.
 
-Apply the same retry-eligibility predicate to every query that can claim or retire a pending row (`apps/api/src/jobs/send-email.ts:20`, `apps/api/src/jobs/send-email.ts:115`, `apps/api/src/jobs/send-email.ts:325`). A deadline or consumed token does not cancel the fencing rule: terminal cleanup must wait until the active claim becomes retry-eligible. Resend supersession is stricter and changes only rows with `attempt_count = 0` (`apps/api/src/modules/auth/service.ts:518`).
+Apply the same retry-eligibility predicate to every query that can claim or retire a pending row (`apps/backend/src/jobs/send-email.ts`). A deadline or consumed token does not cancel the fencing rule: terminal cleanup must wait until the active claim becomes retry-eligible. Resend supersession is stricter and changes only rows with `attempt_count = 0` (`apps/backend/src/modules/auth/service.ts`).
 
-Read the clock again after payload preparation and claim renewal. Add the provider request timeout to the current time, then reject a token or idempotency key that cannot remain valid for the whole call (`apps/api/src/jobs/send-email.ts:214`, `apps/api/src/jobs/send-email.ts:275`). Apply the same deadline decision before retrying an unknown signing-key identifier, so already-expired work becomes terminal instead of retrying forever (`apps/api/src/jobs/send-email.ts:137`).
+Read the clock again after payload preparation and claim renewal. Add the provider request timeout to the current time, then reject a token or idempotency key that cannot remain valid for the whole call (`apps/backend/src/jobs/send-email.ts`). Apply the same deadline decision before retrying an unknown signing-key identifier, so already-expired work becomes terminal instead of retrying forever (`apps/backend/src/jobs/send-email.ts`).
 
-During secret rotation, retain the previous secret for at least the longest outstanding token lifetime. Select the current or previous secret by comparing their non-secret identifiers to the identifier recorded when the token was issued (`apps/api/src/jobs/send-email.ts:425`). If a non-null identifier matches neither secret, do not send, but leave still-valid work retryable because a newer deployment may know that key. A legacy null identifier is unrecoverable and terminal; an expired unknown-key row is also terminal.
+During secret rotation, retain the previous secret for at least the longest outstanding token lifetime. Select the current or previous secret by comparing their non-secret identifiers to the identifier recorded when the token was issued (`apps/backend/src/jobs/send-email.ts`). If a non-null identifier matches neither secret, do not send, but leave still-valid work retryable because a newer deployment may know that key. A legacy null identifier is unrecoverable and terminal; an expired unknown-key row is also terminal.
 
-For existing databases, add new metadata as nullable, retire legacy pending rows whose signing key cannot be recovered, and only then install the constraint that every pending row has a key identifier (`apps/api/drizzle/0002_empty_master_mold.sql:1`, `apps/api/drizzle/0002_empty_master_mold.sql:3`, `apps/api/drizzle/0002_empty_master_mold.sql:11`). Sent or already-failed historical rows may remain without that identifier because they will not be delivered again.
+For existing databases, add new metadata as nullable, retire legacy pending rows whose signing key cannot be recovered, and only then install the constraint that every pending row has a key identifier (`apps/backend/drizzle/0002_empty_master_mold.sql`). Sent or already-failed historical rows may remain without that identifier because they will not be delivered again.
 
 ## Why This Matters
 
@@ -68,17 +68,17 @@ A payload fingerprint protects provider idempotency semantics. Atomic claiming p
 
 ## Examples
 
-- Forced outbox-insert failure leaves neither token nor outbox row (`apps/api/test/integration/database.test.ts:278`).
-- A lost provider response retries with an unchanged payload across secret rotation (`apps/api/test/integration/database.test.ts:361`).
-- A rotation before the first delivery preserves the originally issued link (`apps/api/test/integration/database.test.ts:440`).
-- Changed recipient data stops before the provider is called (`apps/api/test/integration/database.test.ts:479`).
-- Two real PostgreSQL connections produce only one active delivery (`apps/api/test/integration/database.test.ts:537`).
-- A reclaimed row cannot be overwritten or sent by the expired claimant (`apps/api/test/integration/database.test.ts:594`).
-- Consumed-token cleanup and deadline cleanup do not steal an active claim (`apps/api/test/integration/database.test.ts:584`, `apps/api/test/integration/database.test.ts:652`).
-- Resend supersession does not overwrite an active delivery (`apps/api/test/integration/auth-email-rate-limit.test.ts:214`).
-- A delay during fingerprint preparation is included in the final deadline decision (`apps/api/src/jobs/send-email.test.ts:272`).
-- An unknown newer key retries only while the token remains deliverable (`apps/api/src/jobs/send-email.test.ts:139`, `apps/api/src/jobs/send-email.test.ts:165`).
-- A legacy pending row is retired before the new invariant is enforced (`apps/api/test/integration/database.test.ts:317`).
+- Forced outbox-insert failure leaves neither token nor outbox row (`apps/backend/test/integration/database.test.ts`).
+- A lost provider response retries with an unchanged payload across secret rotation (`apps/backend/test/integration/database.test.ts`).
+- A rotation before the first delivery preserves the originally issued link (`apps/backend/test/integration/database.test.ts`).
+- Changed recipient data stops before the provider is called (`apps/backend/test/integration/database.test.ts`).
+- Two real PostgreSQL connections produce only one active delivery (`apps/backend/test/integration/database.test.ts`).
+- A reclaimed row cannot be overwritten or sent by the expired claimant (`apps/backend/test/integration/database.test.ts`).
+- Consumed-token cleanup and deadline cleanup do not steal an active claim (`apps/backend/test/integration/database.test.ts`).
+- Resend supersession does not overwrite an active delivery (`apps/backend/test/integration/auth-email-rate-limit.test.ts`).
+- A delay during fingerprint preparation is included in the final deadline decision (`apps/backend/src/jobs/send-email.test.ts`).
+- An unknown newer key retries only while the token remains deliverable (`apps/backend/src/jobs/send-email.test.ts`).
+- A legacy pending row is retired before the new invariant is enforced (`apps/backend/test/integration/database.test.ts`).
 
 ## Related
 
