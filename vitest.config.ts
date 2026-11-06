@@ -6,8 +6,10 @@ export default defineConfig({
   oxc: { jsx: { runtime: "automatic" } },
   resolve: {
     alias: {
-      "#api-test": fileURLToPath(new URL("./apps/api/test", import.meta.url)),
-      "#api": fileURLToPath(new URL("./apps/api/src", import.meta.url)),
+      "#backend-test": fileURLToPath(
+        new URL("./apps/backend/test", import.meta.url),
+      ),
+      "#backend": fileURLToPath(new URL("./apps/backend/src", import.meta.url)),
       "@frontend": fileURLToPath(new URL("./apps/frontend", import.meta.url)),
     },
   },

@@ -48,14 +48,14 @@ jobs:
       - run: pnpm lint
       - run: pnpm typecheck
       - run: pnpm build
-      - run: pnpm test --exclude "apps/api/test/integration/**"
+      - run: pnpm test --exclude "apps/backend/test/integration/**"
       - run: pnpm test:integration
       - run: pnpm db:migrate
       - run: pnpm test:e2e
       - name: Smoke test built API
         run: |
           set -euo pipefail
-          node apps/api/dist/http/index.js &
+          node apps/backend/dist/http/index.js &
           api_pid=$!
           trap 'kill -TERM "$api_pid" 2>/dev/null || true' EXIT
           curl --retry 30 --retry-delay 1 --retry-all-errors --fail --silent http://127.0.0.1:3001/ready
@@ -66,7 +66,7 @@ jobs:
         run: |
           set -euo pipefail
           worker_log="${RUNNER_TEMP}/amuq-worker.log"
-          node apps/api/dist/worker.js >"$worker_log" 2>&1 &
+          node apps/backend/dist/worker.js >"$worker_log" 2>&1 &
           worker_pid=$!
           trap 'kill -TERM "$worker_pid" 2>/dev/null || true' EXIT
           for _ in {1..30}; do

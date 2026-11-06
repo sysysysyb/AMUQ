@@ -1,0 +1,40 @@
+{
+  "name": "@amuq/backend",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "imports": {
+    "#backend-test/*": "./test/*.ts",
+    "#backend/*": {
+      "types": "./src/*.ts",
+      "development": "./src/*.ts",
+      "default": "./dist/*.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "db:check": "node --conditions=development --env-file-if-exists=../../.env --experimental-strip-types src/db/check.ts",
+    "db:generate": "node --conditions=development ./node_modules/drizzle-kit/bin.cjs generate --config drizzle.config.ts",
+    "db:migrate": "node --conditions=development --env-file-if-exists=../../.env --experimental-strip-types src/db/migrate.ts",
+    "dev": "node --conditions=development --env-file-if-exists=../../.env --watch --experimental-strip-types src/http/index.ts",
+    "dev:worker": "node --conditions=development --env-file-if-exists=../../.env --watch --experimental-strip-types src/worker.ts",
+    "start": "node --env-file-if-exists=../../.env dist/http/index.js",
+    "start:worker": "node --env-file-if-exists=../../.env dist/worker.js",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@fastify/swagger": "9.8.1",
+    "@fastify/swagger-ui": "5.2.6",
+    "argon2": "0.45.1",
+    "drizzle-orm": "0.45.3",
+    "fastify": "5.12.5",
+    "jose": "6.2.12",
+    "pg": "8.23.0",
+    "pg-boss": "12.33.3",
+    "svix": "2.8.0"
+  },
+  "devDependencies": {
+    "@types/pg": "8.23.1",
+    "drizzle-kit": "0.31.11"
+  }
+}
