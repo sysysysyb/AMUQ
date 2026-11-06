@@ -17,7 +17,7 @@ services:
 
   migrate:
     image: amuq-preview:local
-    working_dir: /app/apps/api
+    working_dir: /app/apps/backend
     command: ["node", "dist/db/migrate.js"]
     environment:
       AMUQ_ENV: production
@@ -28,7 +28,7 @@ services:
 
   api:
     image: amuq-preview:local
-    working_dir: /app/apps/api
+    working_dir: /app/apps/backend
     command: ["node", "dist/http/index.js"]
     environment:
       AMUQ_ENV: production
@@ -61,7 +61,7 @@ services:
 
   worker:
     image: amuq-preview:local
-    working_dir: /app/apps/api
+    working_dir: /app/apps/backend
     command: ["node", "dist/worker.js"]
     environment:
       AMUQ_ENV: production

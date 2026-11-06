@@ -38,7 +38,7 @@ export default defineConfig(
   },
   {
     files: [
-      "apps/api/src/**/*.ts",
+      "apps/backend/src/**/*.ts",
       "apps/frontend/{app,components,features,lib}/**/*.{ts,tsx}",
     ],
     ignores: ["**/*.test.{ts,tsx}"],
@@ -55,7 +55,7 @@ export default defineConfig(
     },
   },
   {
-    files: ["apps/api/{src,test}/**/*.ts"],
+    files: ["apps/backend/{src,test}/**/*.ts"],
     rules: {
       "no-restricted-imports": [
         "error",
@@ -64,7 +64,7 @@ export default defineConfig(
             {
               group: ["./**", "../**"],
               message:
-                "Use #api/... for source imports and #api-test/... for test helpers.",
+                "Use #backend/... for source imports and #backend-test/... for test helpers.",
             },
           ],
         },
