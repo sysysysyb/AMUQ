@@ -1,7 +1,7 @@
 ---
 title: Keep authentication transactions short and lock users first
 date: 2026-09-28
-last_updated: 2026-10-19
+last_updated: 2026-11-07
 category: architecture-patterns
 module: authentication
 problem_type: architecture_pattern

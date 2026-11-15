@@ -304,7 +304,7 @@ flowchart TB
 │  │  ├─ features/
 │  │  ├─ lib/api/
 │  │  └─ lib/telemetry/
-│  └─ api/                         # Fastify HTTP + 같은 패키지의 worker entry
+│  └─ backend/                     # Fastify HTTP + 같은 패키지의 worker entry
 │     ├─ src/http/
 │     ├─ src/modules/
 │     ├─ src/jobs/
@@ -335,7 +335,7 @@ flowchart TB
 
 ### Key Technical Decisions
 
-- **KTD1. `frontend`, `api`, 공용 계약 패키지로 구성한 pnpm workspace를 사용한다.** 별도 worker 애플리케이션이나 범용 공용 계층은 만들지 않는다. API 패키지의 두 실행 진입점으로 Railway의 HTTP 서비스와 worker를 배포한다. Governs U01-U13.
+- **KTD1. `frontend`, `backend`, 공용 계약 패키지로 구성한 pnpm workspace를 사용한다.** 별도 worker 애플리케이션이나 범용 공용 계층은 만들지 않는다. API 패키지의 두 실행 진입점으로 Railway의 HTTP 서비스와 worker를 배포한다. Governs U01-U13.
 - **KTD2. Fastify 5, Drizzle, PostgreSQL과 pg-boss를 사용한다.** Redis나 별도 메시지 브로커를 추가하지 않고 하나의 DB에서 제약, 트랜잭션과 작업 재시도를 관리한다. 오래 걸리는 외부 호출은 트랜잭션 밖에서 실행한다. Governs U01-U12.
 - **KTD3. 비공개 객체 저장소는 Cloudflare R2를 사용한다.** (session-settled: user-approved — Railway Buckets 대신 선택: R10과 R26의 비공개 PDF와 검증 가능한 삭제에는 저장 암호화와 객체 수명 주기 안전망이 필요하다.) Governs U04-U06, U12.
 - **KTD4. 트랜잭션 이메일은 Resend를 사용한다.** (session-settled: user-approved — Postmark 대신 선택: R1-R2의 저용량 인증 및 재설정 메일에는 Resend의 단순한 API, suppression과 webhook이면 충분하고 맞춤 보존과 Message Stream은 불필요하다.) Governs U02, U12.
