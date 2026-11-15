@@ -1,6 +1,7 @@
 ---
 title: Authenticate client addresses across hosted proxies
 date: 2026-09-25
+last_updated: 2026-11-07
 category: architecture-patterns
 module: web-api-proxy
 problem_type: architecture_pattern
@@ -31,10 +32,10 @@ AMUQ routes browser traffic through a Vercel same-origin proxy before it reaches
 
 Treat the browser address as a separate authenticated claim:
 
-1. Keep Fastify's generic forwarded-header trust disabled (`apps/backend/src/http/server.ts:71`).
-2. At the Vercel boundary, read the platform-provided address, reject malformed production values, delete caller-provided internal headers, and overwrite them with the verified address and a shared secret (`apps/frontend/app/api/[...path]/route.ts:55`, `apps/frontend/app/api/[...path]/route.ts:80`).
-3. At the API, accept that address only when it is a single valid IP and the secret matches; otherwise use the socket address (`apps/backend/src/http/client-address.ts:21`).
-4. Require the secret in production and require HTTPS for the upstream API so the credential is not sent in plaintext (`apps/backend/src/config/environment.ts:13`, `apps/frontend/app/api/[...path]/route.ts:38`).
+1. Keep Fastify's generic forwarded-header trust disabled (`apps/backend/src/http/server.ts`).
+2. At the Vercel boundary, read the platform-provided address, reject malformed production values, delete caller-provided internal headers, and overwrite them with the verified address and a shared secret (`apps/frontend/app/api/[...path]/route.ts`).
+3. At the API, accept that address only when it is a single valid IP and the secret matches; otherwise use the socket address (`apps/backend/src/http/client-address.ts`).
+4. Require the secret in production and require HTTPS for the upstream API so the credential is not sent in plaintext (`apps/backend/src/config/environment.ts`, `apps/frontend/app/api/[...path]/route.ts`).
 
 ## Why This Matters
 
@@ -52,9 +53,9 @@ Prefer a platform-native signed identity header when one is available. The share
 
 ## Examples
 
-- The Web proxy preserves two different platform client addresses across one upstream (`apps/frontend/app/api/[...path]/route.test.ts:80`).
-- The API integration test accepts the authenticated address but falls back for a wrong secret or malformed address (`apps/backend/test/integration/health.test.ts:25`).
-- Production rejects an HTTP API origin before forwarding the secret (`apps/frontend/app/api/[...path]/route.test.ts:23`).
+- The Web proxy preserves two different platform client addresses across one upstream (`apps/frontend/app/api/[...path]/route.test.ts`).
+- The API integration test accepts the authenticated address but falls back for a wrong secret or malformed address (`apps/backend/test/integration/health.test.ts`).
+- Production rejects an HTTP API origin before forwarding the secret (`apps/frontend/app/api/[...path]/route.test.ts`).
 
 ## Related
 
