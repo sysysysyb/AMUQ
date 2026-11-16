@@ -1,7 +1,7 @@
 # Issue #27 — Application Directory Rename
 
 - 원본: [Issue #27](https://github.com/sysysysyb/AMUQ/issues/27)
-- 현재: [PR #29](https://github.com/sysysysyb/AMUQ/pull/29) 병합, 최종 [PR #30](https://github.com/sysysysyb/AMUQ/pull/30) 게시 완료. 마지막 검토 규칙과 고정 Preview 링크 보완 후 사용자가 커밋을 검토하고 직접 push 예정
+- 현재: [PR #29](https://github.com/sysysysyb/AMUQ/pull/29) 병합, 최종 [PR #30](https://github.com/sysysysyb/AMUQ/pull/30) 게시 완료. 고정 Preview 링크와 검토 강도 규칙 보완을 포함해 사용자가 커밋을 검토하고 직접 push 예정
 - Issue 검토 기준: `99174c7a5399bd7a99f60317d31b8c4d4770c082`. 중간 PR 병합 후에도 유지
 
 ## Approved Delivery Order
@@ -75,11 +75,34 @@
 
 </details>
 
+## Documentation Review Effort
+
+- **Codex**: 사용자 승인으로 코드와 실행 변경은 기존 high, 내용이 바뀌는 문서만의 변경은 medium 초기 검토, 의미를 보존하는 단순 문서는 Codex 검사로 구분. 실제 포맷과 규칙 정합성 검사 통과. 문서의 일상 보완과 기록 최종화는 자동 재검토에서 제외. 제품 테스트와 빌드 미실행
+- **Claude review**: CLI `--effort medium`으로 실행했으나 native 명령이 실제 받은 검토 기준은 high였음. AGENTS.md와 이번 기록 및 체크포인트에서 P2 1건과 P3 7건 확인. Git과 해시 및 포맷 검사는 Claude가 재실행하지 않았고 제품 코드와 이전 누적 검토는 범위 제외
+- **Codex response to review**: P3 7건의 문구와 기록을 보완. native medium은 명령 수준과 별도 지시문 방식에서도 적용되지 않아 완료로 인정하지 않았음. 사용자 승인으로 문서 검토만 직접 프롬프트와 `--effort medium`을 사용하는 일반 Claude CLI 경로로 변경. 코드의 native high와 누적 검토 및 승인 절차 유지
+- **Claude re-review**: 승인된 일반 Claude CLI `--effort medium` 읽기 전용 검토에서 이번 규칙과 기록 및 체크포인트, 기존 8건 처리를 모두 수용. 추가 지적 없음. 실패한 native 확인은 medium 완료로 집계하지 않았으며 일상적인 결과 기록에는 추가 재검토를 실행하지 않음
+
+<details>
+<summary>Review effort policy — P2 1건, P3 7건</summary>
+
+| ID           | 최초 등급 | 지적과 영향                                                               | 처리와 이유                                                                                 |
+| ------------ | --------- | ------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------- |
+| 27-EFF-R1-01 | P2        | CLI effort만 낮추면 native 명령의 high 기준이 남아 실행과 기록이 어긋남   | native 인자 변경도 효과 없어 사용자 승인으로 문서 검토를 일반 Claude CLI medium 경로로 변경 |
+| 27-EFF-R1-02 | P3        | 사전 검사를 검토 응답 칸에 남기면 실제 지적 처리가 불명확                 | 사전 검사는 Codex 요약으로 옮기고 응답은 실제 8건 처리로 갱신                               |
+| 27-EFF-R1-03 | P3        | 재검토 미실행 문구를 고정하면 이후 중요한 지적에 대한 확인 상태 누락 가능 | 실제 P2 수정에 따른 대상 재확인 대기로 갱신                                                 |
+| 27-EFF-R1-04 | P3        | medium 대기 문구를 유지하면 실제 high 실행과 확인 한계가 빠짐             | 실제 실행 강도와 세 파일의 범위 및 Claude의 미실행 검사 기록                                |
+| 27-EFF-R1-05 | P3        | 체크포인트가 포맷 검사 대상을 AGENTS.md로만 표시                          | 세 파일 모두 실제 무시 목록을 덮어써 검사한 범위로 수정                                     |
+| 27-EFF-R1-06 | P3        | 문서 P0/P1 수정의 재검토 기준이 단계별 문장에서 다르게 해석될 수 있음     | P0/P1 문서 수정은 대상 medium 재검토를 유지하고 단계별 강도 참조 통일                       |
+| 27-EFF-R1-07 | P3        | 1회라는 표현이 중요한 수정의 조건부 재검토까지 막는 것으로 해석 가능      | 초기 검토와 제한된 재검토를 구분하는 표현으로 수정                                          |
+| 27-EFF-R1-08 | P3        | 현재 상태에 이번 검토 강도 보완이 포함되는지 불명확                       | 사용자 검토와 push 대상에 검토 강도 규칙 보완 포함 명시                                     |
+
+</details>
+
 ## Remaining Delivery Conditions
 
 - 병합 기준: 최종 게시 HEAD의 CI와 Preview READY를 재확인하고 공통 고정 별칭을 해당 배포로 갱신. 자동화 최초 적용은 기존 수동 확인 유지
 - 자동화 확인: 기존 게시 HEAD `60877d6`에서 CI와 Preview READY 및 워크플로 수동 재실행의 별칭 갱신 권한과 대상 일치 확인. 최초 실제 READY 이벤트의 자동 실행은 미확인으로, 다음 열린 PR에서 확인 필요. PR 생성 전에 배포가 READY면 갱신을 건너뛸 수 있는 조건도 유지
-- 전달 순서: 마지막 문서 보완의 로컬 커밋 후 사용자가 검토하고 직접 push 예정. 새 HEAD의 원격 CI와 고정 Preview 연결은 push 이후 확인 필요
+- 전달 순서: 검토 강도 규칙 보완을 포함한 문서 변경의 로컬 커밋 후 사용자가 검토하고 직접 push 예정. 새 HEAD의 원격 CI와 고정 Preview 연결은 push 이후 확인 필요
 - 병합 조건: 최종 CI와 Preview 확인 후 별도 사용자 병합 승인 필요. 기존 제품 검증 근거는 PR2 기록에 보존
 - MVP 전체 검토 기준 `mvp-start-sha`: 미확정. Stage 7 전에 최초 구현 이전 Git 이력으로 검증해 `docs/issue-reports/mvp-review-baseline.md`에 기록 필요. Issue 기준이나 현재 HEAD로 대체 금지
 - 범위 제외: 테스트 관리는 [#28](https://github.com/sysysysyb/AMUQ/issues/28), SQL 포맷은 [#22](https://github.com/sysysysyb/AMUQ/issues/22)에서 진행 예정

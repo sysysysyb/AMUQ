@@ -1,11 +1,11 @@
 # Workflow Status
 
-> Updated: 2026-11-16 23:09 KST
+> Updated: 2026-11-17 00:38 KST
 
 ## Current state
 
 - Status: in progress
-- Stage: Stage 6.4 — 최종 문서 대상 검토 완료, 사용자 승인 로컬 커밋 준비
+- Stage: Stage 6.4 — 일반 Claude medium 문서 검토 완료, 사용자 승인 로컬 커밋 준비
 
 ## Active work
 
@@ -17,8 +17,8 @@
 
 ## Current checkpoint
 
-- Last completed: 사용자 수정과 로컬 커밋 지시 확인. PR #30 open과 게시 HEAD 60877d6 확인, 사용자가 커밋 검토 후 직접 push 예정
-- Latest verification: 문서 포맷과 diff 및 규칙 검사, native P2 2건과 P3 4건 처리 및 대상 재확인 — passed. 제품 검사 미실행, 새 review-issue 실제 실행 검증은 다음 Issue로 이연
+- Last completed: 승인된 일반 Claude CLI medium 문서 검토에서 규칙과 기록, 기존 8건 처리 수용. 기존 로컬 커밋 승인 유지
+- Latest verification: 세 문서 실제 포맷과 diff 및 규칙 검사, 일반 Claude medium 검토 — passed. 실패한 native 시도는 medium 완료로 집계하지 않음. 제품 검사 미실행
 
 ## Review focus
 
@@ -35,4 +35,4 @@
 ## Next action
 
 - Owner: Codex
-- Action: 검토 완료 후 승인된 문서 변경을 두 개의 로컬 커밋으로 저장
+- Action: 검증된 문서 검토 규칙과 기록을 로컬 커밋으로 저장
