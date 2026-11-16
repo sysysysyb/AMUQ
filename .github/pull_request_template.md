@@ -18,6 +18,9 @@
 
 ## Verification
 
+- Test URL: [Preview 로그인](https://amuq-auth-preview-sys-projects-4849b575.vercel.app/login)
+  <!-- Preview 테스트는 Vercel 자동 댓글의 브랜치 주소 대신 위 고정 주소 사용. 이 PR의 배포 연결 여부와 필요한 실행 조건을 함께 기재. 테스트 대상이 없으면 해당 없음으로 변경. -->
+
 - [ ] 수정 전 실패와 수정 후 통과를 기록했음
 - [ ] 관련 테스트를 실행하고 결과를 확인했음
 - [ ] 타입 검사, 린트와 빌드를 통과했음
