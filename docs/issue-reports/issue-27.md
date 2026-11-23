@@ -491,6 +491,7 @@ docker compose -p amuq-preview -f compose.preview.yaml -f compose.preview.ngrok.
 
 ### Historical Delivery Conditions
 
+- 아래 항목은 후속 누적 CE가 끝난 뒤의 전달 조건을 미리 정리한 기록임
 - 누적 CE 후 최종 문서의 native 재검토 완료. 정확한 변경 커밋 승인 및 반영과 별도 PR 게시 승인을 받기 전까지 게시 불가
 - 고정 Preview 별칭의 실제 자동 실행과 등록 토큰 권한은 PR 게시 후 READY 배포에서 확인 필요
 - 등록 토큰이 허용 가능한 최소 권한인지 확인하는 조건은 게시 전까지 유지
@@ -504,7 +505,7 @@ docker compose -p amuq-preview -f compose.preview.yaml -f compose.preview.ngrok.
 - **Codex**: 최초 Issue 기준부터 PR1과 PR2의 11개 커밋을 합쳐 누적 검토 자료를 고정
 - **Claude review**: 9개 관점의 누적 CE 결과는 `Ready with fixes`, 확정 P3 1건. 실제 검토 범위와 한계 및 확정 지적에서 제외한 후보는 상세 기록에 보존
 - **Codex response to review**: 27-CE-02와 학습 조사 관찰을 반영해 활성 MVP 계획의 backend 명칭 2곳과 프록시 안내 보완. 근거가 다른 후보는 미수정 이유 보존
-- **Claude re-review**: 명칭과 안내 수정, 기존 처리 판단 및 후속 기록 보완을 대상 범위에서 확인하고 최종 문구 수용. Git과 해시 재계산 및 제품 검사 재실행은 미실행
+- **Claude re-review**: 명칭과 안내 수정 및 기존 처리 판단을 대상 범위에서 확인. 후속 확인에서 추가한 P3 6건을 보완하고 최종 문구 수용. Git과 해시 재계산 및 제품 검사 재실행은 미실행
 
 <details>
 <summary>Implementation, verification and review details</summary>
@@ -605,7 +606,7 @@ docker compose -p amuq-preview -f compose.preview.yaml -f compose.preview.ngrok.
 
 ## Delivery and Documentation Rules
 
-- **Codex**: 전달 기록과 문서 검토 기준 정리. 기록 스킬 연결과 검토 입력 재사용 및 근거 보존 규칙을 보완하고 PR 템플릿의 고정 Preview 링크와 최종 Issue 검토 경로 갱신
+- **Codex**: 전달 기록과 문서 검토 기준 정리. 기록 스킬 연결과 검토 입력 재사용 및 근거 보존 규칙 보완. PR 템플릿에 고정 Preview 링크를 추가하고 AGENTS.md의 최종 Issue 검토 경로 갱신
 - **Claude review**: 운영 문서와 PR 본문 및 문서 검토 정책을 별도 범위로 검토. 기준 SHA 보존, 기록 작성 순서, 승인 상태와 실제 포맷 검사 및 검토 강도 불일치 지적
 - **Codex response to review**: 개별 지적을 확인해 규칙과 기록 보완. 코드 native high, 내용이 바뀌는 문서의 일반 CLI medium 및 단순 문서의 Codex 검사로 검토 경로 정리
 - **Claude re-review**: 운영 문서와 PR 본문의 단계별 대상 재확인 완료. 마지막 일반 CLI medium 문서 검토에서 기존 P2 1건과 P3 7건 처리 수용, 새 지적 없음. 실제 high였던 native 시도는 medium 완료로 계산하지 않음
