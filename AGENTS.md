@@ -45,6 +45,14 @@
 - For document checks, compare the diff for intended meaning, check changed links and file paths, check Markdown formatting with the existing formatter when applicable, and run `git diff --check`. Ensure the formatter actually checks the changed files, overriding its ignore path when necessary.
 - These rules preserve explicit artifact, commit, publication, and merge approval gates and the required cumulative Issue and MVP reviews. Report the checks performed and mark skipped Claude reviews as skipped, not passed.
 
+### Issue Report Review
+
+- Reuse completed independent review coverage for unchanged historical report content only after matching it to the current content through recoverable Git references, patches, or hashes. Retain the covered scope, findings, dispositions, and limitations. Incomplete reviews provide no completed coverage.
+- Codex checks preservation of copied, moved, or unchanged historical material through diffs, hashes, and comparisons of finding IDs, original severity, dispositions, SHA references, counts, and verification limits. Reuse matching evidence rather than rereading entire historical reports or raw transcripts.
+- Apply Review Scope and Effort to new or changed report passages and directly affected references. If coverage or preservation is uncertain, expand review only to the affected material needed to resolve that uncertainty.
+- For a documentation-only Issue's final `/review-issue`, retain the original cumulative baseline and complete changed-file manifest, including deleted and applicable untracked files. Use one reviewer to combine verified prior coverage with review of the remaining changes and cross-document consistency: requirement coverage, omissions, contradictions, links, and accurate verification and approval states. Report length alone does not justify skipping required coverage.
+- Record reused coverage, newly reviewed passages, preservation checks, and remaining limits separately. This report-specific scope does not reduce source-code, mixed-change, or cumulative product Issue and MVP review requirements. Report updates alone do not restart a completed product review; all applicable approval gates remain in force.
+
 ### Claude Review Execution and Completion
 
 - Before implementation begins, verify the Claude CLI executable, authentication, and availability of both required review commands. Use the registered command names above; do not assume an unverified alias works.
@@ -209,14 +217,12 @@ Review without changing approved requirements or designs, then request approval 
 
 ### Stage 6: Issue Delivery Loop
 
-Work on one Issue at a time.
-
 #### 6.1 Prepare
 
 - Read the Issue, mapped U-IDs, approved artifacts, and relevant `docs/solutions/`.
 - Inspect the working tree and report unrelated or unexpected changes without modifying them.
 - For approved branch preparation after a merge, use the bounded status-only checkpoint preservation procedure in Stage 6.4 if a verified post-commit checkpoint is the sole dirty file. Other or unverified changes still block branch operations.
-- Fetch remote changes, update `main` using fast-forward only, and create `<type>/<issue-number>-<imperative-verb>-<short-scope>` with `git switch`.
+- Fetch remote changes, update `main` using fast-forward only, and create an Issue branch with `git switch` using the Git Rules naming convention.
 - Divide the Issue into ordered, independently verifiable subtasks labeled `<issue-number>-<sequence>` (e.g., `8-1`, `8-2`). These are internal work units, not additional GitHub Issues.
 - Plan small, independently verifiable PRs before implementation, normally one per approved subtask. Obtain approval for their scopes, dependencies, order, and review coverage. Each PR targets `main`; prepare the next branch from updated `main` only after the preceding PR is merged and the next start is approved. Retain the Issue number and use a distinct scope suffix rather than an Issue integration branch. Keep one PR for an Issue that already fits one coherent change. An approved split does not authorize child Issues.
 - For each subtask, define scope, dependencies, acceptance criteria, and applicable verification.
@@ -287,9 +293,9 @@ Ensure all changes intended for the PR have passed the required review, validati
 
 If the only remaining change is a verified agent-owned post-commit `status.md` checkpoint, save and hash an exact copy in an Issue-owned ignored temporary artifact outside directories scheduled for cleanup. Temporarily restore only `status.md` from the approved HEAD without staging or committing it, then verify the approved range and fully clean working tree before the approved publication or post-merge branch preparation. In a `finally` path on success or failure, restore the saved checkpoint and refresh it with verified operation results and the actual current branch; verify restoration before deleting the backup. Do not clean up outstanding checkpoint backups, use this procedure for other files or unverified edits, or discard the only copy. Batch the restored checkpoint into the next cohesive reviewed commit under the global status rules.
 
-Stop and request explicit approval to create the PR. Do not paste full successful logs or rely on the CLI transcript as the sole durable record.
+Stop and request explicit approval to create the PR. Do not rely on the CLI transcript as the sole durable record.
 
-After approval, verify the approved commit range and clean working tree, then run `/ce-commit-push-pr babysit:off archive:off` to push and create or update the PR. Do not allow the skill to create additional commits or modify unapproved changes. Keep the PR title and section headings in English, and write a concise Korean implementation and verification summary. Follow the fixed Outcome field order in `.github/pull_request_template.md`. Fill its Records field with commit-pinned links to the reviewed Issue documentation present in the pushed commit; do not link to ignored local reports or substitute document links for the required PR summary. Do not merge automatically.
+After approval, verify the approved commit range and clean working tree, then run `/ce-commit-push-pr babysit:off archive:off` to push and create or update the PR. Do not allow the skill to create additional commits or modify unapproved changes. Follow the fixed Outcome field order in `.github/pull_request_template.md`. Fill its Records field with commit-pinned links to the reviewed Issue documentation present in the pushed commit; do not link to ignored local reports or substitute document links for the required PR summary. Do not merge automatically.
 
 Treat recorded subtask SHAs as local/PR-history review references; they may differ from the commits on `main` after Rebase and merge. Keep detailed review scope and private metadata locally, and preserve the original Issue baseline and final cumulative review range in reviewed Issue documentation. Commit-pinned documentation links identify the published head publicly. Omit standalone `Reviewed range` and `Pull request` fields from the PR description. After merge, verify the actual merge-result SHA and refresh `status.md` with that result and PR URL. The PR commit list and merge event provide the public Git references. Do not create a later Issue commit or rewrite approved commits merely to synchronize report SHAs.
 

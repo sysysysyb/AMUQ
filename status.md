@@ -1,24 +1,24 @@
 # Workflow Status
 
-> Updated: 2026-11-23 19:39 KST
+> Updated: 2026-11-23 20:03 KST
 
 ## Current state
 
 - Status: ready
-- Stage: Issue #31 최종 문서 확인 완료, 승인된 기록 커밋과 PR 게시 준비
+- Stage: 승인된 리포트 검토 규칙과 중복 문구 5개 정리의 로컬 커밋 준비
 
 ## Active work
 
 - Issue: [#31 Consolidate reports for Issues #8 and #27](https://github.com/sysysysyb/AMUQ/issues/31)
 - Branch: `docs/31-consolidate-issue-reports`
-- Pull Request: None
+- Pull Request: [#32](https://github.com/sysysysyb/AMUQ/pull/32)
 - Plan: None
 - Design: None
 
 ## Current checkpoint
 
-- Last completed: 사용자 결과 확인과 승인 후 Issue #8 통합본 `19c7cc8`, Issue #27 통합본 `8f9b9eb` 커밋 완료. 승인한 파일과 커밋 blob 일치 확인
-- Latest verification: 기존 검토와 보존 근거를 재사용한 medium 최종 통합 확인 완료, P3 4건 처분 확정. 최초 전체 재독은 20턴 한도로 미완료이며 통과로 계산하지 않음. 사용자 지시로 최종 확인 범위 제한
+- Last completed: 사용자 승인한 중복 정리 5개만 적용. 앞서 medium 검토를 마친 리포트 검토 규칙과 함께 커밋 승인 확인. PR #32 게시 HEAD는 `7c506b0` 유지
+- Latest verification: 기존 정책의 medium 검토와 P3 3건 처리 근거 유지. 승인한 5개 변경만 적용했는지 해시로 대조하고 두 문서의 포맷 및 diff 검사 — passed. 추가 Claude 검토 생략. 제품 검사 및 원격 CI 미실행
 
 ## Review focus
 
@@ -26,7 +26,7 @@
 
 ## Remaining risk
 
-- None
+- 로컬 정책 변경은 PR #32에 미반영. 게시 승인 시 Issue 기록과 PR 설명에 추가 범위 반영 필요
 
 ## Blockers
 
@@ -35,4 +35,4 @@
 ## Next action
 
 - Owner: Codex
-- Action: 사용자 승인된 문서 변경을 커밋하고 push 후 PR 게시
+- Action: 승인된 AGENTS.md와 체크포인트를 로컬 커밋으로 저장
