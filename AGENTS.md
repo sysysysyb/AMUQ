@@ -138,6 +138,7 @@ Approved Figma screens and `docs/DESIGN.md` are the UI source of truth.
 
 ## Validation Policy
 
+- Read [docs/TESTING.md](docs/TESTING.md) before adding, moving, or reorganizing tests or shared test helpers, or changing test collection, isolation, or CI test rules.
 - Run all applicable focused tests, relevant suites, type checking, linting, and build commands. Use pnpm unless the repository specifies otherwise.
 - Run Playwright E2E for affected critical user flows.
 - For UI changes, also run `/ce-test-browser`, `/impeccable audit`, and the required Figma comparison.
