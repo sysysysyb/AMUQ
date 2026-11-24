@@ -1,32 +1,34 @@
 # Workflow Status
 
-> Updated: 2026-11-23 20:03 KST
+> Updated: 2026-11-24 15:13 KST
 
 ## Current state
 
-- Status: ready
-- Stage: 승인된 리포트 검토 규칙과 중복 문구 5개 정리의 로컬 커밋 준비
+- Status: awaiting approval
+- Stage: Issue #28-1 커밋 승인 대기
 
 ## Active work
 
-- Issue: [#31 Consolidate reports for Issues #8 and #27](https://github.com/sysysysyb/AMUQ/issues/31)
-- Branch: `docs/31-consolidate-issue-reports`
-- Pull Request: [#32](https://github.com/sysysysyb/AMUQ/pull/32)
+- Issue: [#28 Define test organization standards and restructure existing suites](https://github.com/sysysysyb/AMUQ/issues/28)
+- Branch: `chore/28-define-test-standards`
+- Pull Request: None
 - Plan: None
 - Design: None
 
 ## Current checkpoint
 
-- Last completed: 사용자 승인한 중복 정리 5개만 적용. 앞서 medium 검토를 마친 리포트 검토 규칙과 함께 커밋 승인 확인. PR #32 게시 HEAD는 `7c506b0` 유지
-- Latest verification: 기존 정책의 medium 검토와 P3 3건 처리 근거 유지. 승인한 5개 변경만 적용했는지 해시로 대조하고 두 문서의 포맷 및 diff 검사 — passed. 추가 Claude 검토 생략. 제품 검사 및 원격 CI 미실행
+- Last completed: 테스트 구성 기준과 CI 검사 구현, 독립 검토와 대상 재검토 완료.
+- Latest verification: CI 도구 테스트 47개, Vitest 179개, PostgreSQL 통합 148개, 포맷, 린트, 타입 검사 및 빌드 — passed.
 
 ## Review focus
 
-- None
+- `docs/TESTING.md::줄 수를 정한 이유` — 후보 상한과 기존 테스트 분포를 비교한 근거.
+- `eslint.config.mjs::testLineLimitExceptions` — 기존 초과 파일에 적용하는 정확한 경로와 허용 길이.
+- `.github/workflows/database.yml` — 테스트 구성 검사와 개별 케이스 출력.
 
 ## Remaining risk
 
-- 로컬 정책 변경은 PR #32에 미반영. 게시 승인 시 Issue 기록과 PR 설명에 추가 범위 반영 필요
+- 28-1 게시 후 GitHub Actions에서 개별 테스트 목록 확인 필요.
 
 ## Blockers
 
@@ -34,5 +36,5 @@
 
 ## Next action
 
-- Owner: Codex
-- Action: 승인된 AGENTS.md와 체크포인트를 로컬 커밋으로 저장
+- Owner: User
+- Action: 현재 Issue #28-1 변경의 로컬 커밋 승인.
