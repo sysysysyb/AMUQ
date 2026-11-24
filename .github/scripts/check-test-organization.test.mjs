@@ -117,13 +117,6 @@ test("caps every existing exception at the current file size", async () => {
       `${filePath} must have an exception matching its current size`,
     );
   }
-
-  const [nearbyMessage] = await lintLines(
-    "tests/e2e/auth-ui-copy.spec.ts",
-    401,
-  );
-  assert.equal(nearbyMessage?.ruleId, "max-lines");
-  assert.match(nearbyMessage.message, /401.*400/);
 });
 
 test("applies an exception to a literal bracket path only", async () => {
@@ -138,11 +131,15 @@ test("applies an exception to a literal bracket path only", async () => {
   });
 
   const exact = await eslintWithException.calculateConfigForFile(filePath);
-  const nearby = await eslintWithException.calculateConfigForFile(
-    "apps/frontend/app/api/i/route.test.ts",
-  );
   assert.equal(exact?.rules?.["max-lines"]?.[1], 401);
-  assert.equal(nearby?.rules?.["max-lines"]?.[1], 400);
+
+  for (const nearbyPath of [
+    "apps/frontend/app/api/i/route.test.ts",
+    "apps/frontend/app/api/[id]/route-copy.test.ts",
+  ]) {
+    const nearby = await eslintWithException.calculateConfigForFile(nearbyPath);
+    assert.equal(nearby?.rules?.["max-lines"]?.[1], 400, nearbyPath);
+  }
 });
 
 test("keeps a file-level disable comment from bypassing the limit", async () => {

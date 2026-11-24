@@ -39,9 +39,6 @@ export const testFileLineRules = [
 ];
 
 export const testLineLimitExceptions = {
-  // 28-2: Hold the current E2E size until the authentication flows are split.
-  "tests/e2e/auth-ui.spec.ts": 2246,
-  "tests/e2e/signup-ownership.spec.ts": 548,
   // 28-3: Hold the current size until the shared database tests are split by contract.
   "apps/backend/test/integration/auth-account-link.test.ts": 552,
   "apps/backend/test/integration/auth-email-rate-limit.test.ts": 582,
