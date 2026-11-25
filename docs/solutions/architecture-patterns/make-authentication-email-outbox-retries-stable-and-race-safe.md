@@ -14,7 +14,17 @@ applies_when:
   - A provider request can outlive the token or idempotency deadline
   - Legacy pending rows must be upgraded without sending unverifiable payloads
 related_components: [authentication, messaging, database]
-tags: [auth, email-outbox, idempotency, retries, concurrency, token-security, postgresql, resend]
+tags:
+  [
+    auth,
+    email-outbox,
+    idempotency,
+    retries,
+    concurrency,
+    token-security,
+    postgresql,
+    resend,
+  ]
 ---
 
 # Make authentication email outbox retries stable and race safe
@@ -68,17 +78,17 @@ A payload fingerprint protects provider idempotency semantics. Atomic claiming p
 
 ## Examples
 
-- Forced outbox-insert failure leaves neither token nor outbox row (`apps/backend/test/integration/database.test.ts`).
-- A lost provider response retries with an unchanged payload across secret rotation (`apps/backend/test/integration/database.test.ts`).
-- A rotation before the first delivery preserves the originally issued link (`apps/backend/test/integration/database.test.ts`).
-- Changed recipient data stops before the provider is called (`apps/backend/test/integration/database.test.ts`).
-- Two real PostgreSQL connections produce only one active delivery (`apps/backend/test/integration/database.test.ts`).
-- A reclaimed row cannot be overwritten or sent by the expired claimant (`apps/backend/test/integration/database.test.ts`).
-- Consumed-token cleanup and deadline cleanup do not steal an active claim (`apps/backend/test/integration/database.test.ts`).
-- Resend supersession does not overwrite an active delivery (`apps/backend/test/integration/auth-email-rate-limit.test.ts`).
+- Forced outbox-insert failure leaves neither token nor outbox row (`apps/backend/test/integration/database-auth-storage.test.ts`).
+- A lost provider response retries with an unchanged payload across secret rotation (`apps/backend/test/integration/email-outbox-retry.test.ts`).
+- A rotation before the first delivery preserves the originally issued link (`apps/backend/test/integration/email-outbox-retry.test.ts`).
+- Changed recipient data stops before the provider is called (`apps/backend/test/integration/email-outbox-retry.test.ts`).
+- Two real PostgreSQL connections produce only one active delivery (`apps/backend/test/integration/email-outbox-claims.test.ts`).
+- A reclaimed row cannot be overwritten or sent by the expired claimant (`apps/backend/test/integration/email-outbox-claims.test.ts`).
+- Consumed-token cleanup and deadline cleanup do not steal an active claim (`apps/backend/test/integration/email-outbox-claims.test.ts`).
+- Resend supersession does not overwrite an active delivery (`apps/backend/test/integration/auth-email-outbox.test.ts`).
 - A delay during fingerprint preparation is included in the final deadline decision (`apps/backend/src/jobs/send-email.test.ts`).
 - An unknown newer key retries only while the token remains deliverable (`apps/backend/src/jobs/send-email.test.ts`).
-- A legacy pending row is retired before the new invariant is enforced (`apps/backend/test/integration/database.test.ts`).
+- A legacy pending row is retired before the new invariant is enforced (`apps/backend/test/integration/email-outbox-retry.test.ts`).
 
 ## Related
 

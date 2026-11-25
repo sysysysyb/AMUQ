@@ -2,9 +2,7 @@ import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
 
 import type { Pool } from "pg";
-import { afterAll, beforeEach, describe } from "vitest";
 
-import { createDatabasePool } from "#backend/db/database";
 import { buildServer } from "#backend/http/server";
 import { hashPassword } from "#backend/modules/auth/password";
 import {
@@ -13,9 +11,13 @@ import {
 } from "#backend/modules/auth/service";
 import { deriveSignupCode } from "#backend/modules/auth/signup-token";
 import { hashOpaqueToken } from "#backend/modules/auth/token";
-import { assertTestDatabaseUrl } from "#backend-test/support/test-database";
+import {
+  authRateLimitSecret,
+  authTokenSecret,
+} from "#backend-test/support/auth-test-secrets";
+import { createTestDatabase } from "#backend-test/support/database-fixture";
 
-export const authTokenSecret = "a".repeat(32);
+export { authTokenSecret } from "#backend-test/support/auth-test-secrets";
 
 export const completePasswordSignup = async (
   database: Pool,
@@ -24,7 +26,7 @@ export const completePasswordSignup = async (
   clientAddress: string,
   options: AuthMutationOptions = {
     authTokenSecret,
-    rateLimitSecret: "r".repeat(32),
+    rateLimitSecret: authRateLimitSecret,
   },
   now = new Date(),
 ) => {
@@ -93,31 +95,7 @@ export const seedVerifiedPasswordAccount = async (
 };
 
 export const setupAuthDatabase = () => {
-  const connectionString = process.env.TEST_DATABASE_URL
-    ? assertTestDatabaseUrl(process.env.TEST_DATABASE_URL)
-    : undefined;
-  const databaseTest = connectionString ? describe : describe.skip;
-  const admin = connectionString
-    ? createDatabasePool(connectionString)
-    : undefined;
-  const resetDatabase = async () => {
-    await admin?.query(
-      "DROP TABLE IF EXISTS email_webhook_events, email_outbox, auth_signup_codes, auth_signup_attempts, auth_password_login_limits, auth_rate_limits, auth_oidc_flows, auth_link_sessions, auth_tokens, auth_sessions, auth_identities, users CASCADE",
-    );
-    await admin?.query(
-      "DROP TYPE IF EXISTS email_delivery_status, auth_oidc_flow_mode, auth_token_purpose, auth_rate_limit_subject_kind, auth_rate_limit_scope, auth_provider CASCADE",
-    );
-    await admin?.query("DROP SCHEMA IF EXISTS pgboss CASCADE");
-    await admin?.query("DROP SCHEMA IF EXISTS drizzle CASCADE");
-  };
-
-  beforeEach(async () => {
-    await resetDatabase();
-  });
-  afterAll(async () => {
-    await resetDatabase();
-    await admin?.end();
-  });
+  const { admin, connectionString, databaseTest } = createTestDatabase("file");
 
   const createVerifiedPasswordLogin = async (
     email: string,
@@ -127,7 +105,7 @@ export const setupAuthDatabase = () => {
   ) => {
     const options = {
       authTokenSecret,
-      rateLimitSecret: "r".repeat(32),
+      rateLimitSecret: authRateLimitSecret,
     };
     await completePasswordSignup(
       admin!,

@@ -39,13 +39,6 @@ export const testFileLineRules = [
 ];
 
 export const testLineLimitExceptions = {
-  // 28-3: Hold the current size until the shared database tests are split by contract.
-  "apps/backend/test/integration/auth-account-link.test.ts": 552,
-  "apps/backend/test/integration/auth-email-rate-limit.test.ts": 582,
-  "apps/backend/test/integration/auth-login-rate-limit.test.ts": 1228,
-  "apps/backend/test/integration/auth-signup-challenge.test.ts": 954,
-  "apps/backend/test/integration/auth-signup-completion.test.ts": 641,
-  "apps/backend/test/integration/database.test.ts": 1103,
   // 28-4: Hold the current size until runtime and HTTP boundary tests are reorganized.
   "apps/backend/src/worker.test.ts": 586,
   "apps/backend/src/modules/auth/routes.test.ts": 462,
