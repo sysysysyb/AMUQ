@@ -3,13 +3,6 @@ import { defineConfig } from "eslint/config";
 import simpleImportSort from "eslint-plugin-simple-import-sort";
 import tseslint from "typescript-eslint";
 
-// Remove each legacy path when its contract test moves in 28-4.
-export const legacyProviderContractFiles = [
-  "apps/backend/src/modules/auth/google.test.ts",
-  "apps/backend/src/modules/email/resend.test.ts",
-  "apps/backend/src/modules/email/webhook.test.ts",
-];
-
 export const testFileLineRules = [
   {
     files: [
@@ -30,19 +23,12 @@ export const testFileLineRules = [
     rules: { "max-lines": ["error", 400] },
   },
   {
-    files: [
-      "apps/backend/test/{integration,contracts}/**/*.test.{ts,tsx}",
-      ...legacyProviderContractFiles,
-    ],
+    files: ["apps/backend/test/{integration,contracts}/**/*.test.{ts,tsx}"],
     rules: { "max-lines": ["error", 500] },
   },
 ];
 
-export const testLineLimitExceptions = {
-  // 28-4: Hold the current size until runtime and HTTP boundary tests are reorganized.
-  "apps/backend/src/worker.test.ts": 586,
-  "apps/backend/src/modules/auth/routes.test.ts": 462,
-};
+export const testLineLimitExceptions = {};
 
 export const testLineLimitOverrides = (exceptions) =>
   Object.entries(exceptions).map(([filePath, maxLines]) => ({
