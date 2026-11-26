@@ -77,6 +77,8 @@ test("counts blank lines and comments in shared test support", async () => {
     "tests/e2e/fixtures/session.ts",
     "tests/e2e/helpers.ts",
     "packages/contracts/test/helpers.ts",
+    ".github/scripts/support/fake-api.mjs",
+    ".github/scripts/fixtures/api-response.mjs",
   ]) {
     assert.deepEqual(await lintLines(filePath, 250), [], filePath);
     const [result] = await eslint.lintText("\n".repeat(250) + "// fixture\n", {
