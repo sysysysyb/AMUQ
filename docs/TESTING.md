@@ -10,7 +10,7 @@
 | 브라우저 E2E     | `tests/e2e/`에서 사용자 흐름별로 구성. 응답을 모의하는 화면 검사와 프록시를 통해 실제 API를 호출하는 검사는 파일로 구분                                                                   | 로그인과 가입, 비밀번호 재설정, Google 계정 연결, 공통 피드백, 접근성, 실제 `/api` 연동 |
 | 단위와 컴포넌트  | `apps/` 또는 `packages/`의 대상 모듈 가까이에 배치. 같은 함수, 컴포넌트나 실행 계약을 검증하는 사례를 함께 둠                                                                             | 인증 오류 메시지, 공통 입력 필드, worker 시작과 종료                                    |
 | API 통합         | `apps/backend/test/integration/`에서 DB, API 또는 worker 연동이 필요한 서버 계약별로 구성                                                                                                 | migration, DB 제약, outbox 전달, 로그인 제한, 가입 수명 주기                            |
-| 외부 제공자 계약 | 새 테스트는 `apps/backend/test/contracts/`에 배치. 요청, 응답, 서명과 오류 처리를 제공자별로 구성                                                                                         | Google OIDC 토큰 검증, Resend 발송과 webhook 규약                                       |
+| 외부 제공자 계약 | `apps/backend/test/contracts/`에 배치. 요청, 응답, 서명과 오류 처리를 제공자별로 구성                                                                                                     | Google OIDC 토큰 검증, Resend 발송과 webhook 규약                                       |
 | 공유 지원 코드   | 개별 앱이나 패키지의 루트 바로 아래 `test/support/` 또는 `test/fixtures/`에 배치. E2E와 CI 도구의 지원 코드는 각각 `tests/e2e/`와 `.github/scripts/`의 `support/` 또는 `fixtures/`에 배치 | 테스트 DB 주소 검사, 테스트 데이터 생성, 정리, 반복되는 모의 응답 준비                  |
 
 - 새 회귀는 기존 흐름에 추가. 예를 들어 재설정 세션 만료는 재설정 파일에 두고, 여러 화면에서 쓰는 공통 피드백 동작은 별도 파일로 분리.
@@ -29,7 +29,7 @@
 - 파일 상한은 import, 주석, 공백, 파일 안의 테스트 데이터를 모두 포함한 물리적 줄 수로 검사. `pnpm lint`의 ESLint `max-lines`가 파일과 실제, 허용 줄 수를 표시. [ESLint 설정](../eslint.config.mjs), [CI 설정](../.github/workflows/database.yml)
 - Vitest는 `apps/`와 `packages/`의 `.test.ts`, `.test.tsx`, Playwright는 `tests/e2e/`의 `.spec`과 `.test`를 발견. 해당 파일은 지원 코드와 같은 폴더에 있어도 테스트 유형의 상한을 적용. 테스트 러너의 파일 수집 규칙을 바꾸는 PR은 ESLint의 적용 경로도 함께 확인. [Vitest 설정](../vitest.config.ts), [Playwright 설정](../playwright.config.ts)
 - 테스트와 공유 지원 파일의 인라인 ESLint 설정은 비활성화.
-- 예외는 ESLint 설정에 정확한 파일 경로와 허용 길이를 등록하고 PR 리뷰에서 사유, 범위와 해소 조건을 승인받음. [현재 예외](../eslint.config.mjs)
+- 예외는 ESLint 설정에 정확한 파일 경로와 허용 길이를 등록하고 PR 리뷰에서 사유, 범위와 해소 조건을 승인받음. [예외 설정](../eslint.config.mjs)
 - 파일을 줄이면 예외 상한을 실제 길이로 낮춤. 기본 상한 이내로 줄이거나 파일을 삭제하면 예외를 제거. CI에서 길이나 경로가 맞지 않는 예외를 검출.
 - 로컬에서 줄 수 검사만 확인하려면 `node --test .github/scripts/check-test-organization.test.mjs` 실행. CI와 같이 도구 테스트 전체를 실행하려면 `node --test ".github/scripts/**/*.test.mjs"` 사용. [검증 규칙 테스트](../.github/scripts/check-test-organization.test.mjs)
 - 분리 시 기존 결과 검증, 기대값과 실행 조건을 보존. 검증을 옮기거나 생략해 상한을 맞추기 전에 파일의 책임을 실제로 나눌 수 있는지 확인.

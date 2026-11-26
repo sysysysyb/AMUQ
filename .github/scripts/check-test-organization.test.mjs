@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { access, readFile } from "node:fs/promises";
+import { readFile } from "node:fs/promises";
 import { resolve } from "node:path";
 import { test } from "node:test";
 import { fileURLToPath } from "node:url";
@@ -7,7 +7,6 @@ import { fileURLToPath } from "node:url";
 import { ESLint } from "eslint";
 
 import {
-  legacyProviderContractFiles,
   testFileLineRules,
   testLineLimitExceptions,
   testLineLimitOverrides,
@@ -32,6 +31,11 @@ test("enforces the 400-line boundary for browser and unit tests", async () => {
   for (const filePath of [
     "tests/e2e/login.spec.ts",
     "apps/frontend/components/ui/field.test.tsx",
+    "apps/backend/src/worker.test.ts",
+    "apps/backend/src/modules/auth/routes.test.ts",
+    "apps/backend/src/modules/auth/google.test.ts",
+    "apps/backend/src/modules/email/resend.test.ts",
+    "apps/backend/src/modules/email/webhook.test.ts",
     "apps/backend/test/support/test-database.test.ts",
     "packages/contracts/src/auth.test.ts",
     ".github/scripts/check-test-organization.test.mjs",
@@ -48,13 +52,11 @@ test("enforces the 400-line boundary for browser and unit tests", async () => {
 });
 
 test("allows up to 500 lines for integration and provider contract tests", async () => {
-  for (const filePath of legacyProviderContractFiles) {
-    await access(resolve(repoRoot, filePath));
-  }
   for (const filePath of [
     "apps/backend/test/integration/auth-session.test.ts",
-    "apps/backend/test/contracts/example.test.ts",
-    ...legacyProviderContractFiles,
+    "apps/backend/test/contracts/google-oidc.test.ts",
+    "apps/backend/test/contracts/resend-delivery.test.ts",
+    "apps/backend/test/contracts/resend-webhook.test.ts",
   ]) {
     assert.deepEqual(await lintLines(filePath, 500), [], filePath);
     const messages = await lintLines(filePath, 501);
@@ -132,6 +134,21 @@ test("applies an exception to a literal bracket path only", async () => {
 
   const exact = await eslintWithException.calculateConfigForFile(filePath);
   assert.equal(exact?.rules?.["max-lines"]?.[1], 401);
+
+  const [atLimit] = await eslintWithException.lintText(
+    "// fixture\n".repeat(401),
+    { filePath },
+  );
+  assert.deepEqual(atLimit.messages, []);
+  const [aboveLimit] = await eslintWithException.lintText(
+    "/* eslint-disable max-lines */\n" + "// fixture\n".repeat(401),
+    { filePath },
+  );
+  assert.match(
+    aboveLimit.messages.find(({ ruleId }) => ruleId === "max-lines")?.message ??
+      "",
+    /402.*401/,
+  );
 
   for (const nearbyPath of [
     "apps/frontend/app/api/i/route.test.ts",
